@@ -137,14 +137,14 @@ static inline geopoint_t *scan_landmarks(geopoint_t * hotel, geopoint_t * lmw_st
                 double lat_dist_sq = SQR(lat_dist);
                 double long_dist_sq = SQR(long_dist);
                 double dist_sq = long_dist_sq + lat_dist_sq;
-                if (0 && hotel->id == 23805 && landmark->id == 900123653) {
-                    /* 5.927530273 */
-                    printf("# hotel 23805 distance to L %lu: %.10f H(%lf,%lf) - L(%lf,%lf) (%d)\n",
-                           landmark->id, sqrt(dist_sq), hotel->latitude, hotel->longitude, landmark->latitude,
-                           landmark->longitude, swapped);
-                }
 
                 if (UNLIKELY(dist_sq <= D0)) {
+                    if (0 && hotel->id == 23805 /*&& landmark->id == 900123653 */ ) {
+                        /* 5.927530273 */
+                        printf("# hotel %lu distance to L %lu: %.10f H(%lf,%lf) - L(%lf,%lf) (%d)\n",
+                               hotel->id, landmark->id, sqrt(dist_sq), hotel->latitude, hotel->longitude,
+                               landmark->latitude, landmark->longitude, swapped);
+                    }
                     INCR(hotel->dist[0]);
                     INCR(landmark->dist[0]);
                     if (UNLIKELY(dist_sq <= D1)) {

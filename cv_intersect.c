@@ -260,6 +260,13 @@ int main(int argc, char **argv)
                 landmarks_in_distance[d] += increment;
 #endif
                 if (distance <= (distances_kmsq[d])) {
+                    if (0 && d == 0 && hotels[i].d.id == 23805 /*&& landmark->id == 900123653 */ ) {
+                        /* 5.927530273 */
+
+                        printf("# hotel %lu distance to L %lu: %.10f H(%lf,%lf) - L(%lf,%lf)\n",
+                               hotels[i].d.id, landmarks_by_lat[up].d.id, sqrt(distance), hotels[i].d.lat,
+                               hotels[i].d.lng, landmarks_by_lat[up].d.lat, landmarks_by_lat[up].d.lng);
+                    }
                     landmarks_in_distance[d]++;
                 } else {
                     break;
@@ -276,6 +283,12 @@ int main(int argc, char **argv)
 
             for (u32 d = 0; d < ARRAY_SIZE(distances_kmsq); d++) {      // just rad
                 if (distance <= (distances_kmsq[d])) {
+                    if (0 && d == 0 && hotels[i].d.id == 23805 /*&& landmark->id == 900123653 */ ) {
+                        /* 5.927530273 */
+                        printf("# hotel %lu distance to L %lu: %.10f H(%lf,%lf) - L(%lf,%lf)\n",
+                               hotels[i].d.id, landmarks_by_lat[down].d.id, sqrt(distance), hotels[i].d.lat,
+                               hotels[i].d.lng, landmarks_by_lat[down].d.lat, landmarks_by_lat[down].d.lng);
+                    }
                     landmarks_in_distance[d]++;
                 } else {
                     break;
