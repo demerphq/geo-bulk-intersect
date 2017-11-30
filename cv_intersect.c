@@ -166,7 +166,7 @@ void read_csv( char* filename, latlong* items, u32 max_items, u32 *items_count )
 				.d.id = id,
 				.d.lat = lat,
 				.d.lng = lng,
-				.d.cos_lat = cos(lat/360.0f),
+				.d.cos_lat = cos(pi*lat/180.0f),
 			};
 			items[items_read] = L; 
 			if( items_read % 1000 == 0 ) {
@@ -233,11 +233,9 @@ int main( int argc, char** argv ) {
 
           u32 bs;
           u32 landmark_index = 0;
-	  f32 distances_km[] = {50.0f, 25.0f, 10.0f, 5.0f, 2.0f, 1.0f}; 
-	  f64 distances_rad[] = {50.0f*one_km_in_radians, 25.0f*one_km_in_radians, 10.0f*one_km_in_radians, 5.0f*one_km_in_radians, 2.0f*one_km_in_radians, 1.0f*one_km_in_radians };
+	  f32 distances_km[] = {50.0f, 25.0f, 10.0f, 5.0f, 2.0f, 1.0f};
+	  f64 max_dist_rad = distances_km[0] * one_km_in_radians; 
 	  
-	  assert( ARRAY_SIZE(distances_km) == ARRAY_SIZE(distances_rad) );
-
 	  latlong close_by[100 * 1000]; // assume there are less than 100K landmark close by ever
 	  FILE* out = fopen("landmarks_in_range.csv", "w");
 	  for (u32 i=0; i<hotel_count; i++) {
@@ -258,7 +256,7 @@ int main( int argc, char** argv ) {
 
 		  u32 up = landmark_index;
 		  // printf("Checking increasing distances in rad from %lu to %lu (rad dist: %f)\n", up, num_landmarks, distances_rad[0]);
-                  f32 max_dist = hotels[i].d.lat + distances_rad[0];
+                  f32 max_dist = hotels[i].d.lat + max_dist_rad;
                   while( up < landmark_count && landmarks_by_lat[up].d.lat < max_dist ) {
 				close_by[cb++] = landmarks_by_lat[up];
 				up++;
@@ -266,7 +264,7 @@ int main( int argc, char** argv ) {
 		  
 		  u32 down = landmark_index;
 		  // printf("Checking decreasing distances in rad from %lu to %lu (rad dist: %f)\n", up, num_landmarks, distances_rad[0]);
-                  max_dist = hotels[i].d.lat - distances_rad[0];
+                  max_dist = hotels[i].d.lat - max_dist_rad;
                   while( down > 0 && landmarks_by_lat[down].d.lat > max_dist ) {
 				close_by[cb++] = landmarks_by_lat[down];
 				down--;
@@ -275,6 +273,10 @@ int main( int argc, char** argv ) {
 
 		  for( u32 c = 0; c<cb; c++ ) {
 			  f32 distance = calculate_distance2( close_by[c], hotels[i] );
+
+			  // if( hotels[i].d.id == 23805 ) {
+			  // 				  printf("C hotel 23805 distance to L %llu: %f\n", close_by[c].d.id, distance );
+			  // }
 
 			  for( u32 d=0; d<ARRAY_SIZE(distances_km); d++ ) { // just rad
 				  if( distance <= (distances_km[d] * 1000.0f ) ) {
@@ -285,7 +287,7 @@ int main( int argc, char** argv ) {
 			  }
 		  }
 
-        fprintf(out, "%lu,%u,%u,%u,%u,%u,%u\n", 
+        fprintf(out, "%lu\t%lf\t%lf\t\t%u\t%u\t%u\t%u\t%u\t%u\n", 
 				hotels[i].d.id, 
 				hotels[i].d.lat, 
 				hotels[i].d.lng, 
