@@ -1,0 +1,291 @@
+/*
+clang -std=c99 -g -Wall -Wextra -pedantic -Wpadded -Wno-gnu-empty-initializer -O0 yves.c -o yves; and ./yves
+*/
+#include <assert.h>
+#include <math.h> /* fabs */
+#include <stdio.h>
+#include <stdlib.h> /* exit qsort */
+#include <time.h> /* clock_t, clock, CLOCKS_PER_SEC */
+
+#define internal static
+
+#define u8 uint8_t
+#define u32 uint32_t
+#define f32 float
+#define f64 double
+
+#define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
+
+typedef union latlong {
+	struct {
+		f64 lat;
+		f64 lng;
+		f64 sin_lat;
+		f64 cos_lat;
+		f64 sin_lng;
+		f64 cos_lng;
+		u32 id;
+	};
+	
+	f64 ll[2];
+} latlong;
+
+
+const f64 earth_radius_km = 6371.0f;
+const f64 pi = 3.14159265358979f;
+const f64 one_km_in_radians = (2.0f * pi) / earth_radius_km;
+const f64 km_per_lat = 111.325f;
+
+f64 km_per_lng( latlong ll ) {
+	f64 kml = 111.12f * cos( ll.lat/360.0f );
+	return kml;
+}
+
+// can be optimized by not doing sqrt and replacing pow() with mul
+f64 calculate_distance2( latlong from, latlong to ) {
+	f64 d = 0;
+
+	f64 m_lng = km_per_lng( from ) * 1000.0f; // does it matter if from or to??? A little!
+
+	f64 m_lat = km_per_lat * 1000.0f;
+	
+	f64 diff_lng = (from.lng-to.lng) * m_lng;
+	f64 diff_lat = (from.lat-to.lat) * m_lat;
+	
+	d = sqrt(
+			pow( diff_lng, 2) + pow( diff_lat, 2)
+		);
+		
+	return d;
+}
+
+int compare_id(const void * a, const void * b)
+{
+	return ((latlong*)a)->id - ((latlong*)b)->id;
+}
+
+int compare_lat(const void * a, const void * b)
+{
+	f32 diff  = ((latlong*)a)->lat - ((latlong*)b)->lat;
+  return diff == 0 ? 0 : ( diff < 0 ? -1 : 1);
+}
+
+#define BINSEARCH_ERROR 0
+#define BINSEARCH_FOUND 1
+#define BINSEARCH_INSERT 2
+
+internal u8 binary_search( latlong* landmarks, u32 num_landmarks, u32 lat_or_long, f64 target, u32* index ) {
+
+	// no data at all
+	if( landmarks == NULL ) {
+		return BINSEARCH_ERROR;
+	}
+	
+	// empty array, or insert location should be initial element
+	if( num_landmarks == 0 || target < landmarks[0].ll[lat_or_long] ) {
+		*index = 0;
+		return BINSEARCH_INSERT;
+	}
+	
+	u32 span = num_landmarks;
+	u32 mid = num_landmarks / 2;
+	u32 large_half;
+	while( span > 0 ) {
+
+		if( target == landmarks[mid].ll[lat_or_long] ) {
+			*index = mid;
+			return BINSEARCH_FOUND;
+		}
+		
+		span = span/2; // half the range left over
+		large_half = span/2 + (span % 2);// being clever. But this is ceil 
+
+		if( target < landmarks[mid].ll[lat_or_long] ) {
+			mid -= large_half;
+		} else {
+			mid += large_half;
+		}
+		
+	}
+
+	// target_key is not an element of keys, but we found the closest location
+	if( mid == num_landmarks ) { // after all other elements
+		*index = num_landmarks;
+	} else if( target < landmarks[mid].ll[lat_or_long] ) {
+		*index = mid; // displace, shift the rest right
+	} else if( target > landmarks[mid].ll[lat_or_long] ) {
+		*index = mid+1; // not sure if these two are both possible
+	} else {
+		assert(0); // cannot happen
+	}
+
+
+	// correctness checks:
+	// 1. array has elements, and we should insert at the end, make sure the last element is smaller than the new one
+	if( num_landmarks > 0 && *index == num_landmarks ) {
+		assert( target > landmarks[num_landmarks-1].ll[lat_or_long] );
+	}
+	// 2. array has no elements (we already check this above, but left for completeness)
+	if( num_landmarks == 0 ) {
+		assert( *index == 0 );
+	}
+	// 3. array has elements, and we should insert at the beginning
+	if( num_landmarks > 0 && *index == 0 ) {
+		assert( target < landmarks[0].ll[lat_or_long]  ); // MUST be smaller, otherwise it would have been found if equal
+	}
+	// 4. insert somewhere in the middle
+	if( *index > 0 && *index < num_landmarks ) {
+		assert( target < landmarks[*index].ll[lat_or_long]  ); // insert shifts the rest right, MUST be smaller otherwise it would have been found
+		assert( landmarks[*index-1].ll[lat_or_long]  < target ); // element to the left is smaller
+	}
+
+	return BINSEARCH_INSERT;
+}
+
+void read_csv( char* filename, latlong* items, u32 max_items, u32 *items_count ) {
+	
+	FILE *csv;
+	csv = fopen( filename, "r" );
+	// skip the first line, it has a mysql header thing
+	char header[256] = {};
+	fscanf( csv, "%s%s%s%s", header, header+20, header+40, header+60);
+	// printf("Header: %s\n", header);
+	u32 id;
+	f64 lat, lng;
+
+	u32 items_read = 0;
+	while( 1 ) {
+		assert( items_read < max_items );
+		u32 result = fscanf( csv, "%d,%lf,%lf", &id, &lat, &lng );
+		if( feof(csv) ) {
+			printf("EOF reached, read %u landmarks\n", items_read);
+			break;
+		} else {
+			latlong L = 
+			{
+				.id = id,
+				.lat = lat,
+				.lng = lng,
+				.sin_lat = sin(lat/360.0f),
+				.cos_lat = cos(lat/360.0f),
+				.sin_lng = sin(lng/360.0f),
+				.cos_lng = cos(lng/360.0f)
+			};
+			items[items_read] = L; 
+			if( items_read % 1000 == 0 ) {
+				// printf("\rRead %u\n", items_read);
+			}
+			items_read++;
+		}
+	}
+	
+	fclose( csv );
+	
+	*items_count = items_read;
+}
+
+int main( int argc, char** argv ) {
+
+	srand(time(NULL));
+
+	clock_t start = clock();
+
+	printf("Reading Landmarks from %s\n", argv[1]);
+	
+	u32 max_landmarks = 25 * 1000 * 1000;
+	latlong* landmarks_by_lat = (latlong*) malloc( max_landmarks * sizeof(latlong) );
+	
+	u32 landmark_count;
+	read_csv( argv[1], landmarks_by_lat, max_landmarks, &landmark_count );
+	
+	printf("Reading Hotels from %s\n", argv[2]);
+
+	u32 max_hotels = 10 * 1000 * 1000;
+	latlong* hotels = (latlong*) malloc( max_hotels * sizeof(latlong) );
+
+	u32 hotel_count;
+	read_csv( argv[2], hotels, max_hotels, &hotel_count );
+  printf("Time spent reading data %fs\n", (f32)(clock() - start) / (f32)CLOCKS_PER_SEC );
+
+
+	// read id, long, lat
+	// make 1 list:
+	// latlong sorted by lat
+	
+	// then read the others (id, log, lat)
+	// find any item in range of the thing in lat, traverse left and right to find all in range
+	// and test ones that are also in range of long, for those do distance calc
+	
+	// dump results in some format
+ 
+  start = clock();
+  qsort (landmarks_by_lat, landmark_count, sizeof(latlong), compare_lat);
+  printf("Time spent sorting landmarks %fs\n", (f32)(clock() - start) / (f32)CLOCKS_PER_SEC );
+
+#if 0
+	  for (u32 n=0; n<10; n++) {
+	     printf ("%u: [%.2f, %.2f]\n", landmarks_by_lat[n].id, landmarks_by_lat[n].lat, landmarks_by_lat[n].lng);
+	  }
+#endif	  
+
+
+	start = clock();
+
+	  u32 bs, landmark_index;
+	  f32 distances_km[] = {50.0f, 25.0f, 10.0f, 5.0f, 2.0f, 1.0f}; 
+	  f64 distances_rad[] = {50.0f*one_km_in_radians, 25.0f*one_km_in_radians, 10.0f*one_km_in_radians, 5.0f*one_km_in_radians, 2.0f*one_km_in_radians, 1.0f*one_km_in_radians };
+	  
+	  assert( ARRAY_SIZE(distances_km) == ARRAY_SIZE(distances_rad) );
+
+	  latlong close_by[100 * 1000]; // assume there are less than 100K landmark close by ever
+	  FILE* out = fopen("landmarks_in_range.csv", "w");
+	  for (u32 i=0; i<hotel_count; i++) {
+
+		  u32 cb = 0;
+		  u32 landmarks_in_distance[ ARRAY_SIZE(distances_km) ] = {};
+		  if( i % 500 == 0 ) {
+			  printf("\rProcessing hotels %.3f%% (%.0f hotels/sec)", 100.0f * (f32)i / (f32)hotel_count, (f32)i / ( (f32)(clock() - start) / (f32)CLOCKS_PER_SEC )) ;
+			  fflush(stdout);
+		  }
+
+		  bs = binary_search( landmarks_by_lat, landmark_count, 0, hotels[i].lat, &landmark_index ); // landmark_index is the index where inserting this lat would keep the array sorted
+	     // printf ("Closest to H[%.2f, %.2f] = L[%.2f, %.2f] (%u)\n", hotels[i].lat, hotels[i].lng, landmarks_by_lat[landmark_index].lat, landmarks_by_lat[landmark_index].lng, landmark_index);
+
+		  u32 up = landmark_index;
+		  // printf("Checking increasing distances in rad from %lu to %lu (rad dist: %f)\n", up, num_landmarks, distances_rad[0]);
+		  f32 max_dist = hotels[i].lat + distances_rad[0];
+		  while( up < landmark_count && landmarks_by_lat[up].lat < max_dist ) {
+				close_by[cb++] = landmarks_by_lat[up];
+				up++;
+		  }
+		  
+		  u32 down = landmark_index;
+		  // printf("Checking decreasing distances in rad from %lu to %lu (rad dist: %f)\n", up, num_landmarks, distances_rad[0]);
+		  max_dist = hotels[i].lat - distances_rad[0];
+		  while( down > 0 && landmarks_by_lat[down].lat > max_dist ) {
+				close_by[cb++] = landmarks_by_lat[down];
+				down--;
+		  }
+		  // printf("Total lat candidates: %u\n", cblat);
+
+		  for( u32 c = 0; c<cb; c++ ) {
+			  f32 distance = calculate_distance2( close_by[c], hotels[i] );
+
+			  for( u32 d=0; d<ARRAY_SIZE(distances_km); d++ ) { // just rad
+				  if( distance <= (distances_km[d] * 1000.0f ) ) {
+				  		landmarks_in_distance[d]++;
+				  } else {
+					  break;
+				  }
+			  }
+		  }
+
+		  fprintf(out, "%u,%u,%u,%u,%u,%u,%u\n", hotels[i].id, landmarks_in_distance[0], landmarks_in_distance[1], landmarks_in_distance[2], landmarks_in_distance[3], landmarks_in_distance[4], landmarks_in_distance[5] );
+	  }
+	  
+	  fclose(out);
+  printf("\nTime spent distance finding %fs\n", (f32)(clock() - start) / (f32)CLOCKS_PER_SEC );
+	  
+	
+	exit( 0 );
+}
