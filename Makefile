@@ -8,9 +8,11 @@ LIBS=-lm
 all: cv_intersect intersect
 
 cv_intersect: cv_intersect.c
+		indent -linux -l120 -i4 -nut $<
 		$(CC) -o $@ $< $(CFLAGS) $(LIBS)
 
 intersect: intersect.c
+		indent -linux -l120 -i4 -nut $<
 		$(CC) -o $@ $< $(CFLAGS) $(LIBS)
 
 .PHONY: clean
