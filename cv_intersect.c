@@ -40,17 +40,15 @@ f64 km_per_lng( latlong ll ) {
 }
 
 // can be optimized by not doing sqrt and replacing pow() with mul
-f64 calculate_distance2( latlong from, latlong to ) {
+inline f64 calculate_distance2( latlong from, latlong to ) {
 	f64 d = 0;
 
-	f64 m_lng = km_per_lng( from ) * 1000.0f; // does it matter if from or to??? A little!
+	f64 km_lng = km_per_lng( from ); // does it matter if from or to??? A little!
 
-	f64 m_lat = km_per_lat * 1000.0f;
-	
-        f64 diff_lng = (from.d.lng-to.d.lng) * m_lng;
-        f64 diff_lat = (from.d.lat-to.d.lat) * m_lat;
-	
-	d = sqrt( diff_lng*diff_lng + diff_lat*diff_lat );
+	f64 diff_lng = (from.d.lng-to.d.lng) * km_lng;
+	f64 diff_lat = (from.d.lat-to.d.lat) * km_lng;
+
+	d = diff_lng*diff_lng + diff_lat*diff_lat;
 		
 	return d;
 }
@@ -233,13 +231,13 @@ int main( int argc, char** argv ) {
 
 	u32 bs;
 	u32 landmark_index = 0;
-	f32 distances_km[] = {50.0f, 25.0f, 10.0f, 5.0f, 2.0f, 1.0f};
-	f64 max_dist_rad = distances_km[0] / 111.325f; 
+	f32 distances_kmsq[] = {50.0f*50.0f, 25.0f*25.0f, 10.0f*10.0f, 5.0f*5.0f, 2.0f*2.0f, 1.0f*1.0f};
+	f64 max_dist_rad = 50.0f / 111.325f; 
 
 	FILE* out = fopen("landmarks_in_range.csv", "w");
 	for (u32 i=0; i<hotel_count; i++) {
 
-		u32 landmarks_in_distance[ ARRAY_SIZE(distances_km) ] = { 0, 0, 0, 0, 0, 0 };
+		u32 landmarks_in_distance[ ARRAY_SIZE(distances_kmsq) ] = { 0, 0, 0, 0, 0, 0 };
 		if( i % 10000 == 0 ) {
 			printf("\rProcessing hotels %u/%u %.3f%% (%.0f hotels/sec)", i, hotel_count, 100.0f * (f32)i / (f32)hotel_count, (f32)i / ( (f32)(clock() - start) / (f32)CLOCKS_PER_SEC )) ;
 			fflush(stdout);
@@ -258,8 +256,8 @@ int main( int argc, char** argv ) {
 		while( up < landmark_count && landmarks_by_lat[up].d.lat < max_dist ) {
 			f32 distance = calculate_distance2( landmarks_by_lat[up], hotels[i] );
 
-			for( u32 d=0; d<ARRAY_SIZE(distances_km); d++ ) { // just rad
-				if( distance <= (distances_km[d] * 1000.0f ) ) {
+			for( u32 d=0; d<ARRAY_SIZE(distances_kmsq); d++ ) { // just rad
+				if( distance <= (distances_kmsq[d] ) ) {
 					landmarks_in_distance[d]++;
 				} else {
 					break;
@@ -274,8 +272,8 @@ int main( int argc, char** argv ) {
 		while( down > 0 && landmarks_by_lat[down].d.lat > max_dist ) {
 			f32 distance = calculate_distance2( landmarks_by_lat[down], hotels[i] );
 
-			for( u32 d=0; d<ARRAY_SIZE(distances_km); d++ ) { // just rad
-				if( distance <= (distances_km[d] * 1000.0f ) ) {
+			for( u32 d=0; d<ARRAY_SIZE(distances_kmsq); d++ ) { // just rad
+				if( distance <= (distances_kmsq[d] ) ) {
 					landmarks_in_distance[d]++;
 				} else {
 					break;
