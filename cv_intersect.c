@@ -47,7 +47,7 @@ inline f64 calculate_distance2(latlong from, latlong to)
     f64 km_lng = km_per_lng(from);      // does it matter if from or to??? A little!
 
     f64 diff_lng = (from.d.lng - to.d.lng) * km_lng;
-    f64 diff_lat = (from.d.lat - to.d.lat) * km_lng;
+    f64 diff_lat = (from.d.lat - to.d.lat) * km_per_lat;
 
     d = diff_lng * diff_lng + diff_lat * diff_lat;
 
@@ -248,7 +248,7 @@ int main(int argc, char **argv)
             exit(0);
         }
 
-        u32 up = landmark_index;
+        u32 up = landmark_index + 1;
         // printf("Checking increasing distances in rad from %lu to %lu (lat dist: %f)\n", up, landmark_count, max_dist_rad);
         f32 max_dist = hotels[i].d.lat + max_dist_rad;
         while (up < landmark_count && landmarks_by_lat[up].d.lat < max_dist) {
