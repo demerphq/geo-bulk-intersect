@@ -27,12 +27,14 @@ typedef struct geopoint {
 #define KM_LAT       111.325f   /* Taken from Bookings::Geo::Point */
 #define KM_LONG_MUL  111.12f     /* Taken from Bookings::Geo::Point */
 
-#define D0 (50.0f * 50.0f)
-#define D1 (25.0f * 25.0f)
-#define D2 (10.0f * 10.0f)
-#define D3 ( 5.0f *  5.0f)
-#define D4 ( 2.0f *  2.0f)
-#define D5 ( 1.0f *  1.0f)
+#define SQR(n) (n * n)
+
+#define D0 SQR(50.0f)
+#define D1 SQR(25.0f)
+#define D2 SQR(10.0f)
+#define D3 SQR( 5.0f)
+#define D4 SQR( 2.0f)
+#define D5 SQR( 1.0f)
 
 
 
@@ -149,8 +151,8 @@ int main(int argc, char **argv) {
                 double long_dist= fabs((landmark->longitude - hotel->longitude) * hotel->km_long_mul);
 
                 if (long_dist < 50.0) {
-                    double lat_dist_sq= lat_dist * lat_dist;
-                    double long_dist_sq= long_dist * long_dist;
+                    double lat_dist_sq= SQR(lat_dist);
+                    double long_dist_sq= SQR(long_dist);
                     double dist_sq = long_dist_sq + lat_dist_sq;
                     if( hotel->id == 23805 && landmark->id == 900123653 ) {
                         printf("C hotel 23805 distance to L %lu: %f H(%lf,%lf) - L(%lf,%lf)\n",
