@@ -10,6 +10,7 @@
 typedef struct geopoint {
     double latitude;
     double longitude;
+    double km_long_mul;
     double km_to_meridian;
     double km_to_equator;
     uint64_t id;
@@ -70,7 +71,8 @@ geopoint_t * read_geopoints(char *filename, uint64_t *count)
     }
 
     while (3 == fscanf(f_points,"%lu\t%lf\t%lf\n",&point->id,&point->latitude,&point->longitude)) {
-        point->km_to_meridian= point->longitude * (KM_LONG_MUL * cos(deg2rad(point->latitude)));
+        point->km_long_mul= (KM_LONG_MUL * cos(deg2rad(point->latitude)));
+        point->km_to_meridian= point->longitude * point->km_long_mul;
         point->km_to_equator= point->latitude * KM_LAT;
         bzero(point->dist,sizeof(uint64_t)*6);
         n_points++;
@@ -144,7 +146,7 @@ int main(int argc, char **argv) {
             } else if (lat_dist > 50.0) {
                 break;
             } else {
-                double long_dist= fabs(landmark->km_to_meridian - hotel->km_to_meridian);
+                double long_dist= fabs((landmark->longitude - hotel->longitude) * hotel->km_long_mul);
 
                 if (long_dist < 50.0) {
                     double lat_dist_sq= lat_dist * lat_dist;
