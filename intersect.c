@@ -115,6 +115,8 @@ int main(int argc, char **argv) {
     FILE *out;
     clock_t t0= clock();
     clock_t t1;
+    double elapsed;
+    double last_elapsed=0;
 
     if (argc<3) { 
         printf("intersect H L\n");
@@ -187,11 +189,15 @@ int main(int argc, char **argv) {
                 hotel->dist[4],
                 hotel->dist[5]
         );
-        if (++count % 10000 == 0) {
+        if (++count % 100 == 0) {
             t1 = clock();
-            printf("Processed %.2f%% (%lu) of hotels in %.2lfsecs @ %.2lf/sec\r",
-                    (double)count/(double)n_landmarks*100.0, count, SECS(t1-t0), count/SECS(t1-t0));
-            fflush(stdout);
+            elapsed = SECS(t1-t0);
+            if (elapsed - last_elapsed >= 1.0) {
+                printf("Processed %.2f%% (%lu) of hotels in %.2lfsecs @ %.2lf/sec\r",
+                        (double)count/(double)n_landmarks*100.0, count, SECS(t1-t0), count/SECS(t1-t0));
+                fflush(stdout);
+                last_elapsed = elapsed;
+            }
         }
     }
     fclose(out);
