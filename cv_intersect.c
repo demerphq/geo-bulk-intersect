@@ -156,7 +156,7 @@ void read_csv( char* filename, latlong* items, u32 max_items, u32 *items_count )
                     printf("insufficient space: %u : %u\n", items_read, max_items);
                     exit(1);
                 };
-                scan_count = fscanf( csv, "%llu\t%lf\t%lf\n", &id, &lat, &lng );
+                scan_count = fscanf( csv, "%lu\t%lf\t%lf\n", &id, &lat, &lng );
                 if( scan_count !=3 || feof(csv) ) {
 			printf("EOF reached, read %u items from %s\n", items_read, filename);
 			break;
@@ -285,7 +285,7 @@ int main( int argc, char** argv ) {
 			  }
 		  }
 
-                  fprintf(out, "%llu,%u,%u,%u,%u,%u,%u\n", hotels[i].d.id, landmarks_in_distance[0], landmarks_in_distance[1], landmarks_in_distance[2], landmarks_in_distance[3], landmarks_in_distance[4], landmarks_in_distance[5] );
+                  fprintf(out, "%lu,%u,%u,%u,%u,%u,%u\n", hotels[i].d.id, landmarks_in_distance[0], landmarks_in_distance[1], landmarks_in_distance[2], landmarks_in_distance[3], landmarks_in_distance[4], landmarks_in_distance[5] );
 	  }
 	  
 	  fclose(out);
