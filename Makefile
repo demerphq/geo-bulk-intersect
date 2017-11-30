@@ -19,7 +19,9 @@ intersect: intersect.c
 
 test: intersect cv_intersect
 	time ./intersect H.dat L.dat
+	@echo ""
 	time ./cv_intersect H.dat L.dat
+	@echo ""
 
 .PHONY: clean
 

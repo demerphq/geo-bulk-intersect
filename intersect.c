@@ -169,8 +169,8 @@ static inline geopoint_t *scan_landmarks(geopoint_t * hotel, geopoint_t * lmw_st
 }
 
 inline static uint64_t intersect_hotels(geopoint_t * const hotels, const uint64_t n_hotels,
-                                      geopoint_t * const landmarks, const uint64_t n_landmarks,
-                                      const int swapped, FILE * out, const char *type_hotels, clock_t t0)
+                                        geopoint_t * const landmarks, const uint64_t n_landmarks,
+                                        const int swapped, FILE * out, const char *type_hotels, clock_t t0)
 {
     const geopoint_t *hotels_end = hotels + n_hotels;
     const geopoint_t *landmarks_end = landmarks + n_landmarks;
