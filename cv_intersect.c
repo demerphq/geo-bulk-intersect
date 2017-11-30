@@ -30,10 +30,10 @@ typedef union latlong {
 } latlong;
 
 
-#define earth_radius_km  6371.0
-#define pi  3.14159265358979
-#define one_km_in_radians ((2.0 * pi) / earth_radius_km)
-#define km_per_lat  111.325
+#define earth_radius_km  6371.0f
+#define pi  3.14159265358979f
+#define one_km_in_radians ((2.0f * pi) / earth_radius_km)
+#define km_per_lat  111.325f
 
 f64 km_per_lng( latlong ll ) {
         f64 kml = 111.12f * ll.d.cos_lat;
@@ -285,7 +285,17 @@ int main( int argc, char** argv ) {
 			  }
 		  }
 
-                  fprintf(out, "%lu,%u,%u,%u,%u,%u,%u\n", hotels[i].d.id, landmarks_in_distance[0], landmarks_in_distance[1], landmarks_in_distance[2], landmarks_in_distance[3], landmarks_in_distance[4], landmarks_in_distance[5] );
+        fprintf(out, "%lu,%u,%u,%u,%u,%u,%u\n", 
+				hotels[i].d.id, 
+				hotels[i].d.lat, 
+				hotels[i].d.lng, 
+				landmarks_in_distance[0],
+				landmarks_in_distance[1],
+				landmarks_in_distance[2],
+				landmarks_in_distance[3],
+				landmarks_in_distance[4], 
+				landmarks_in_distance[5]
+			);
 	  }
 	  
 	  fclose(out);
