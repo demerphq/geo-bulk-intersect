@@ -131,12 +131,18 @@ static inline geopoint_t *scan_landmarks(geopoint_t * hotel, geopoint_t * lmw_st
             break;
         } else {
             double long_dist = fabs((landmark->longitude - hotel->longitude) *
-                                    (swapped ? landmark->km_long_mul : hotel->km_long_mul));
+                                    (swapped ? hotel->km_long_mul : landmark->km_long_mul));
 
             if (UNLIKELY(long_dist < 50.0)) {
                 double lat_dist_sq = SQR(lat_dist);
                 double long_dist_sq = SQR(long_dist);
                 double dist_sq = long_dist_sq + lat_dist_sq;
+                if (0 && hotel->id == 23805 && landmark->id == 900123653) {
+                    /* 5.927530273 */
+                    printf("# hotel 23805 distance to L %lu: %.10f H(%lf,%lf) - L(%lf,%lf) (%d)\n",
+                           landmark->id, sqrt(dist_sq), hotel->latitude, hotel->longitude, landmark->latitude,
+                           landmark->longitude, swapped);
+                }
 
                 if (UNLIKELY(dist_sq <= D0)) {
                     INCR(hotel->dist[0]);
