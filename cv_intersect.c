@@ -235,7 +235,8 @@ int main( int argc, char** argv ) {
 	  f32 distances_km[] = {50.0f, 25.0f, 10.0f, 5.0f, 2.0f, 1.0f};
 	  f64 max_dist_rad = distances_km[0] / 111.325f; 
 	  
-	  latlong close_by[100 * 1000]; // assume there are less than 100K landmark close by ever
+          latlong *close_by= malloc(sizeof(latlong) * 1000 * 1000);
+          assert(close_by);
 	  FILE* out = fopen("landmarks_in_range.csv", "w");
 	  for (u32 i=0; i<hotel_count; i++) {
 
@@ -254,7 +255,7 @@ int main( int argc, char** argv ) {
                   }
 
 		  u32 up = landmark_index;
-		  // printf("Checking increasing distances in rad from %lu to %lu (rad dist: %f)\n", up, num_landmarks, distances_rad[0]);
+
                   f32 max_dist = hotels[i].d.lat + max_dist_rad;
                   while( up < landmark_count && landmarks_by_lat[up].d.lat < max_dist ) {
 				close_by[cb++] = landmarks_by_lat[up];
@@ -262,13 +263,13 @@ int main( int argc, char** argv ) {
 		  }
 		  
 		  u32 down = landmark_index;
-		  // printf("Checking decreasing distances in rad from %lu to %lu (rad dist: %f)\n", up, num_landmarks, distances_rad[0]);
+
                   max_dist = hotels[i].d.lat - max_dist_rad;
                   while( down > 0 && landmarks_by_lat[down].d.lat > max_dist ) {
 				close_by[cb++] = landmarks_by_lat[down];
 				down--;
 		  }
-		  // printf("Total lat candidates: %u\n", cblat);
+                  // printf("Total lat candidates: %u\n", cb);
 
 		  for( u32 c = 0; c<cb; c++ ) {
 			  f32 distance = calculate_distance2( close_by[c], hotels[i] );
