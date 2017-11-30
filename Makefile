@@ -1,6 +1,6 @@
 CC=gcc
 #CFLAGS=-std=c99 -O0 -g -Wall -Wextra -pedantic -Wpadded -Wno-gnu-empty-initializer -DDEBUG
-CFLAGS=-std=c99 -O3 -Wall -Wextra -pedantic -Wpadded -Wno-gnu-empty-initializer -DNDEBUG
+CFLAGS=-std=c99 -Ofast -Wall -Wextra -pedantic -Wpadded -Wno-gnu-empty-initializer -DNDEBUG
 LIBS=-lm
 
 .PHONY: all
