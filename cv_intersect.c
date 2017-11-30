@@ -32,7 +32,7 @@ typedef union latlong {
 
 #define earth_radius_km  6371.0f
 #define pi  3.14159265358979f
-#define one_km_in_radians ((2.0f * pi) / earth_radius_km)
+#define one_km_in_radians ( 2.0f / earth_radius_km)
 #define km_per_lat  111.325f
 
 f64 km_per_lng( latlong ll ) {
@@ -234,7 +234,7 @@ int main( int argc, char** argv ) {
           u32 bs;
           u32 landmark_index = 0;
 	  f32 distances_km[] = {50.0f, 25.0f, 10.0f, 5.0f, 2.0f, 1.0f};
-	  f64 max_dist_rad = distances_km[0] * one_km_in_radians; 
+	  f64 max_dist_rad = distances_km[0] / 111.325f; 
 	  
 	  latlong close_by[100 * 1000]; // assume there are less than 100K landmark close by ever
 	  FILE* out = fopen("landmarks_in_range.csv", "w");
@@ -274,7 +274,7 @@ int main( int argc, char** argv ) {
 		  for( u32 c = 0; c<cb; c++ ) {
 			  f32 distance = calculate_distance2( close_by[c], hotels[i] );
 
-			  // if( hotels[i].d.id == 23805 ) {
+			  // if( hotels[i].d.id == 23805 && distance <= 1000.0f * 50.0f ) {
 			  // 				  printf("C hotel 23805 distance to L %llu: %f\n", close_by[c].d.id, distance );
 			  // }
 
@@ -303,6 +303,17 @@ int main( int argc, char** argv ) {
 	  fclose(out);
   printf("\nTime spent distance finding %fs\n", (f32)(clock() - start) / (f32)CLOCKS_PER_SEC );
 	  
-	
+// latlong a = {
+// 	.d.lat =-54.841648f,
+// 	.d.lng= -68.372195f,
+// 	.d.cos_lat = cos( (-54.841648f*pi) / 180.0f )
+// }  ;
+// latlong b = {
+// 	.d.lat =-54.666670,
+// 	.d.lng= -68.500000,
+// 	.d.cos_lat = cos( (-54.666670*pi) / 180.0f )
+// }  ;
+//   f32 dtest = calculate_distance2( a, b );
+//   printf("distnace H(-54.841648,-68.372195) - L(-54.666670,-68.500000) = %f\n", dtest);
 	exit( 0 );
 }

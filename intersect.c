@@ -17,21 +17,21 @@ typedef struct geopoint {
 } geopoint_t;
 
 #define CMP(a,b) ( ((a) < (b)) ? -1 : ((a) == (b)) ? 0 : 1 )
-#define deg2rad(deg) (deg * M_PI / 180.0)
+#define deg2rad(deg) (deg * M_PI / 180.0f)
 
 #ifndef M_PI
-#define M_PI 3.14159265358979323846264338327950288
+#define M_PI 3.14159265358979323846264338327950288f
 #endif
 
-#define KM_LAT       111.325    /* Taken from Bookings::Geo::Point */
-#define KM_LONG_MUL  111.12     /* Taken from Bookings::Geo::Point */
+#define KM_LAT       111.325f   /* Taken from Bookings::Geo::Point */
+#define KM_LONG_MUL  111.12f     /* Taken from Bookings::Geo::Point */
 
-#define D0 (50.0 * 50.0)
-#define D1 (25.0 * 25.0)
-#define D2 (10.0 * 10.0)
-#define D3 ( 5.0 *  5.0)
-#define D4 ( 2.0 *  2.0)
-#define D5 ( 1.0 *  1.0)
+#define D0 (50.0f * 50.0f)
+#define D1 (25.0f * 25.0f)
+#define D2 (10.0f * 10.0f)
+#define D3 ( 5.0f *  5.0f)
+#define D4 ( 2.0f *  2.0f)
+#define D5 ( 1.0f *  1.0f)
 
 
 
@@ -150,6 +150,9 @@ int main(int argc, char **argv) {
                     double lat_dist_sq= lat_dist * lat_dist;
                     double long_dist_sq= long_dist * long_dist;
                     double dist_sq = long_dist_sq + lat_dist_sq;
+			  if( hotel->id == 23805 ) {
+			  				  printf("C hotel 23805 distance to L %llu: %f H(%lf,%lf) - L(%lf,%lf)\n", landmark->id, sqrt(dist_sq), hotel->latitude, hotel->longitude, landmark->latitude, landmark->longitude );
+			  }
 
                     if (dist_sq <= D0) {
                         hotel->dist[0]++;
