@@ -156,7 +156,7 @@ void read_csv( char* filename, latlong* items, u32 max_items, u32 *items_count )
                     printf("insufficient space: %u : %u\n", items_read, max_items);
                     exit(1);
                 };
-                scan_count = fscanf( csv, "%llu,%lf,%lf\n", &id, &lat, &lng );
+                scan_count = fscanf( csv, "%llu\t%lf\t%lf\n", &id, &lat, &lng );
                 if( scan_count !=3 || feof(csv) ) {
 			printf("EOF reached, read %u items from %s\n", items_read, filename);
 			break;
