@@ -1,5 +1,5 @@
 /*
-clang -std=c99 -g -Wall -Wextra -pedantic -Wpadded -Wno-gnu-empty-initializer -O0 yves.c -o yves; and ./yves
+clang -std=c99 -g -Wall -Wextra -pedantic -Wpadded -Wno-gnu-empty-initializer -O3 -NDEBUG cv_intersect.c -o cv_intersect; and ./cv_intersect
 */
 #include <assert.h>
 #include <math.h> /* fabs */
@@ -22,11 +22,8 @@ typedef union latlong {
 	struct {
 		f64 lat;
 		f64 lng;
-		f64 sin_lat;
 		f64 cos_lat;
-		f64 sin_lng;
-		f64 cos_lng;
-                u64 id;
+       u64 id;
         } d;
 	
 	f64 ll[2];
@@ -39,7 +36,7 @@ typedef union latlong {
 #define km_per_lat  111.325
 
 f64 km_per_lng( latlong ll ) {
-        f64 kml = 111.12f * cos( ll.d.lat/360.0f );
+        f64 kml = 111.12f * ll.d.cos_lat;
 	return kml;
 }
 
@@ -54,9 +51,7 @@ f64 calculate_distance2( latlong from, latlong to ) {
         f64 diff_lng = (from.d.lng-to.d.lng) * m_lng;
         f64 diff_lat = (from.d.lat-to.d.lat) * m_lat;
 	
-	d = sqrt(
-			pow( diff_lng, 2) + pow( diff_lat, 2)
-		);
+	d = sqrt( diff_lng*diff_lng + diff_lat*diff_lat );
 		
 	return d;
 }
@@ -163,18 +158,15 @@ void read_csv( char* filename, latlong* items, u32 max_items, u32 *items_count )
                 };
                 scan_count = fscanf( csv, "%lu\t%lf\t%lf\n", &id, &lat, &lng );
                 if( scan_count !=3 || feof(csv) ) {
-			printf("EOF reached, read %u landmarks\n", items_read);
+			printf("EOF reached, read %u items from %s\n", items_read, filename);
 			break;
 		} else {
 			latlong L = 
 			{
-                                .d.id = id,
-                                .d.lat = lat,
-                                .d.lng = lng,
-                                .d.sin_lat = sin(lat/360.0f),
-                                .d.cos_lat = cos(lat/360.0f),
-                                .d.sin_lng = sin(lng/360.0f),
-                                .d.cos_lng = cos(lng/360.0f)
+				.d.id = id,
+				.d.lat = lat,
+				.d.lng = lng,
+				.d.cos_lat = cos(lat/360.0f),
 			};
 			items[items_read] = L; 
 			if( items_read % 1000 == 0 ) {
@@ -196,21 +188,23 @@ int main( int argc, char** argv ) {
         }
 	clock_t start = clock();
 
-	printf("Reading Landmarks from %s\n", argv[1]);
 	
-	u32 max_landmarks = 25 * 1000 * 1000;
-	latlong* landmarks_by_lat = (latlong*) malloc( max_landmarks * sizeof(latlong) );
-	
-	u32 landmark_count;
-	read_csv( argv[1], landmarks_by_lat, max_landmarks, &landmark_count );
-	
-	printf("Reading Hotels from %s\n", argv[2]);
+	printf("Reading Hotels from %s\n", argv[1]);
 
 	u32 max_hotels = 10 * 1000 * 1000;
 	latlong* hotels = (latlong*) malloc( max_hotels * sizeof(latlong) );
 
 	u32 hotel_count;
-	read_csv( argv[2], hotels, max_hotels, &hotel_count );
+	read_csv( argv[1], hotels, max_hotels, &hotel_count );
+
+
+	printf("Reading Landmarks from %s\n", argv[2]);
+	
+	u32 max_landmarks = 25 * 1000 * 1000;
+	latlong* landmarks_by_lat = (latlong*) malloc( max_landmarks * sizeof(latlong) );
+	
+	u32 landmark_count;
+	read_csv( argv[2], landmarks_by_lat, max_landmarks, &landmark_count );
   printf("Time spent reading data %fs\n", (f32)(clock() - start) / (f32)CLOCKS_PER_SEC );
 
 
@@ -251,7 +245,7 @@ int main( int argc, char** argv ) {
 		  u32 cb = 0;
                   u32 landmarks_in_distance[ ARRAY_SIZE(distances_km) ] = { 0, 0, 0, 0, 0, 0 };
                   if( i % 10000 == 0 ) {
-			  printf("\rProcessing hotels %.3f%% (%.0f hotels/sec)", 100.0f * (f32)i / (f32)hotel_count, (f32)i / ( (f32)(clock() - start) / (f32)CLOCKS_PER_SEC )) ;
+			  printf("\rProcessing hotels %lu/%lu %.3f%% (%.0f hotels/sec)", 100.0f * (f32)i / (f32)hotel_count, i, hotel_count, (f32)i / ( (f32)(clock() - start) / (f32)CLOCKS_PER_SEC )) ;
 			  fflush(stdout);
 		  }
 
