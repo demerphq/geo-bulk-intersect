@@ -68,7 +68,7 @@ int compare_lat(const void * a, const void * b)
 #define BINSEARCH_FOUND 1
 #define BINSEARCH_INSERT 2
 
-internal u8 binary_search( latlong* landmarks, u32 num_landmarks, u32 lat_or_long, f64 target, u32* index ) {
+internal u8 binary_search( latlong* landmarks, u32 num_landmarks, f64 target, u32* index ) {
 
 	// no data at all
 	if( landmarks == NULL ) {
@@ -76,7 +76,7 @@ internal u8 binary_search( latlong* landmarks, u32 num_landmarks, u32 lat_or_lon
 	}
 	
 	// empty array, or insert location should be initial element
-	if( num_landmarks == 0 || target < landmarks[0].ll[lat_or_long] ) {
+	if( num_landmarks == 0 || target < landmarks[0].d.lat ) {
 		*index = 0;
 		return BINSEARCH_INSERT;
 	}
@@ -86,7 +86,7 @@ internal u8 binary_search( latlong* landmarks, u32 num_landmarks, u32 lat_or_lon
 	u32 large_half;
 	while( span > 0 ) {
 
-		if( target == landmarks[mid].ll[lat_or_long] ) {
+		if( target == landmarks[mid].d.lat ) {
 			*index = mid;
 			return BINSEARCH_FOUND;
 		}
@@ -94,7 +94,7 @@ internal u8 binary_search( latlong* landmarks, u32 num_landmarks, u32 lat_or_lon
 		span = span/2; // half the range left over
 		large_half = span/2 + (span % 2);// being clever. But this is ceil 
 
-		if( target < landmarks[mid].ll[lat_or_long] ) {
+		if( target < landmarks[mid].d.lat ) {
 			mid -= large_half;
 		} else {
 			mid += large_half;
@@ -105,9 +105,9 @@ internal u8 binary_search( latlong* landmarks, u32 num_landmarks, u32 lat_or_lon
 	// target_key is not an element of keys, but we found the closest location
 	if( mid == num_landmarks ) { // after all other elements
 		*index = num_landmarks;
-	} else if( target < landmarks[mid].ll[lat_or_long] ) {
+	} else if( target < landmarks[mid].d.lat ) {
 		*index = mid; // displace, shift the rest right
-	} else if( target > landmarks[mid].ll[lat_or_long] ) {
+	} else if( target > landmarks[mid].d.lat ) {
 		*index = mid+1; // not sure if these two are both possible
 	} else {
 		assert(0); // cannot happen
@@ -117,7 +117,7 @@ internal u8 binary_search( latlong* landmarks, u32 num_landmarks, u32 lat_or_lon
 	// correctness checks:
 	// 1. array has elements, and we should insert at the end, make sure the last element is smaller than the new one
 	if( num_landmarks > 0 && *index == num_landmarks ) {
-		assert( target > landmarks[num_landmarks-1].ll[lat_or_long] );
+		assert( target > landmarks[num_landmarks-1].d.lat );
 	}
 	// 2. array has no elements (we already check this above, but left for completeness)
 	if( num_landmarks == 0 ) {
@@ -125,12 +125,12 @@ internal u8 binary_search( latlong* landmarks, u32 num_landmarks, u32 lat_or_lon
 	}
 	// 3. array has elements, and we should insert at the beginning
 	if( num_landmarks > 0 && *index == 0 ) {
-		assert( target < landmarks[0].ll[lat_or_long]  ); // MUST be smaller, otherwise it would have been found if equal
+		assert( target < landmarks[0].d.lat ); // MUST be smaller, otherwise it would have been found if equal
 	}
 	// 4. insert somewhere in the middle
 	if( *index > 0 && *index < num_landmarks ) {
-		assert( target < landmarks[*index].ll[lat_or_long]  ); // insert shifts the rest right, MUST be smaller otherwise it would have been found
-		assert( landmarks[*index-1].ll[lat_or_long]  < target ); // element to the left is smaller
+		assert( target < landmarks[*index].ll.d.lat  ); // insert shifts the rest right, MUST be smaller otherwise it would have been found
+		assert( landmarks[*index-1].ll.d.lat  < target ); // element to the left is smaller
 	}
 
 	return BINSEARCH_INSERT;
@@ -243,7 +243,7 @@ int main( int argc, char** argv ) {
 			fflush(stdout);
 		}
 
-		bs = binary_search( landmarks_by_lat, landmark_count, 0, hotels[i].d.lat, &landmark_index ); // landmark_index is the index where inserting this lat would keep the array sorted
+		bs = binary_search( landmarks_by_lat, landmark_count, hotels[i].d.lat, &landmark_index ); // landmark_index is the index where inserting this lat would keep the array sorted
 		// printf ("Closest to H[%.2f, %.2f] = L[%.2f, %.2f] (%u)\n", hotels[i].d.lat, hotels[i].d.lng, landmarks_by_lat[landmark_index].d.lat, landmarks_by_lat[landmark_index].d.lng, landmark_index);
 		if (bs == BINSEARCH_ERROR) {
 		    printf("binsearch error\n");
@@ -257,6 +257,10 @@ int main( int argc, char** argv ) {
 			f32 distance = calculate_distance2( landmarks_by_lat[up], hotels[i] );
 
 			for( u32 d=0; d<ARRAY_SIZE(distances_kmsq); d++ ) { // just rad
+#if 0
+				u32 increment = distance <= distances_kmsq[d] ? 1 : 0;
+				landmarks_in_distance[d] += increment;
+#endif				
 				if( distance <= (distances_kmsq[d] ) ) {
 					landmarks_in_distance[d]++;
 				} else {
