@@ -8,15 +8,21 @@ LIBS=-lm
 all: cv_intersect intersect
 
 cv_intersect: cv_intersect.c
-		indent -linux -l120 -i4 -nut $<
-		$(CC) -o $@ $< $(CFLAGS) $(LIBS)
+	indent -linux -l120 -i4 -nut $<
+	$(CC) -o $@ $< $(CFLAGS) $(LIBS)
 
 intersect: intersect.c
-		indent -linux -l120 -i4 -nut $<
-		$(CC) -o $@ $< $(CFLAGS) $(LIBS)
+	indent -linux -l120 -i4 -nut $<
+	$(CC) -o $@ $< $(CFLAGS) $(LIBS)
+
+.PHONY: test
+
+test: intersect cv_intersect
+	time ./intersect H.dat L.dat
+	time ./cv_intersect H.dat L.dat
 
 .PHONY: clean
 
 clean:
-		rm -f cv_intersect intersect
+	rm -f cv_intersect intersect
 

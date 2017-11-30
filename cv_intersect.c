@@ -236,8 +236,8 @@ int main(int argc, char **argv)
         u32 landmarks_in_distance[ARRAY_SIZE(distances_kmsq)] = { 0, 0, 0, 0, 0, 0 };
         if (i % 10000 == 0) {
             f32 elapsed = ((f32) (clock() - start) / (f32) CLOCKS_PER_SEC);
-            printf("Processed %.3f%% (%u) of %u hotels in %.2fsecs @ %.0f hotels/sec\r",
-                   100.0f * (f32) i / (f32) hotel_count, i, hotel_count, elapsed, (f32) i / elapsed);
+            printf("Processed %.3f%% (%u) of hotels in %.2fsecs @ %.0f hotels/sec\r",
+                   100.0f * (f32) i / (f32) hotel_count, i, elapsed, (f32) i / elapsed);
             fflush(stdout);
         }
 
@@ -285,21 +285,17 @@ int main(int argc, char **argv)
         }
         // printf("Total lat candidates: %u\n", cblat);
 
-        fprintf(out, "%lu\t%lf\t%lf\t\t%u\t%u\t%u\t%u\t%u\t%u\n",
-                hotels[i].d.id,
-                hotels[i].d.lat,
-                hotels[i].d.lng,
-                landmarks_in_distance[0],
-                landmarks_in_distance[1],
-                landmarks_in_distance[2], landmarks_in_distance[3], landmarks_in_distance[4], landmarks_in_distance[5]
+        fprintf(out, "%lu\t%lf\t%lf\t\t%u\t%u\t%u\t%u\t%u\t%u\n", hotels[i].d.id, hotels[i].d.lat, hotels[i].d.lng,
+                landmarks_in_distance[0], landmarks_in_distance[1], landmarks_in_distance[2], landmarks_in_distance[3],
+                landmarks_in_distance[4], landmarks_in_distance[5]
             );
     }
 
     fclose(out);
     {
         f32 elapsed = ((f32) (clock() - start) / (f32) CLOCKS_PER_SEC);
-        printf("Processed %.3f%% (%u) of %u hotels in %.2fsecs @ %.0f hotels/sec\n",
-               100.0f * (f32) i / (f32) hotel_count, i, hotel_count, elapsed, (f32) i / elapsed);
+        printf("Processed %.3f%% (%u) of hotels in %.2fsecs @ %.0f hotels/sec\n",
+               100.0f * (f32) i / (f32) hotel_count, hotel_count, elapsed, (f32) i / elapsed);
     }
     printf("\nTime spent distance finding %fs\n", (f32) (clock() - start) / (f32) CLOCKS_PER_SEC);
 
