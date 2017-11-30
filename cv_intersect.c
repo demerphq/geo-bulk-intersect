@@ -32,7 +32,6 @@ typedef union latlong {
 
 #define earth_radius_km  6371.0f
 #define pi  3.14159265358979f
-#define one_km_in_radians ( 2.0f / earth_radius_km)
 #define km_per_lat  111.325f
 
 f64 km_per_lng( latlong ll ) {
