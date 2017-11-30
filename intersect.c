@@ -147,8 +147,8 @@ int main(int argc, char **argv) {
                 double long_dist= fabs(landmark->km_to_meridian - hotel->km_to_meridian);
 
                 if (long_dist < 50.0) {
-                    double lat_dist_sq= pow(lat_dist, 2.0);
-                    double long_dist_sq= pow(long_dist, 2.0);
+                    double lat_dist_sq= lat_dist * lat_dist;
+                    double long_dist_sq= long_dist * long_dist;
                     double dist_sq = long_dist_sq + lat_dist_sq;
 
                     if (dist_sq <= D0) {
@@ -194,7 +194,7 @@ int main(int argc, char **argv) {
             elapsed = SECS(t1-t0);
             if (elapsed - last_elapsed >= 1.0) {
                 printf("Processed %.2f%% (%lu) of hotels in %.2lfsecs @ %.2lf/sec\r",
-                        (double)count/(double)n_landmarks*100.0, count, SECS(t1-t0), count/SECS(t1-t0));
+                        (double)count/(double)n_hotels*100.0, count, SECS(t1-t0), count/SECS(t1-t0));
                 fflush(stdout);
                 last_elapsed = elapsed;
             }
@@ -203,7 +203,7 @@ int main(int argc, char **argv) {
     fclose(out);
     t1 = clock();
     printf("Processed %.2f%% (%lu) of hotels in %.2lfsecs @ %.2lf/sec\n",
-            (double)count/(double)n_landmarks*100.0, count, SECS(t1-t0), count/SECS(t1-t0));
+            (double)count/(double)n_hotels*100.0, count, SECS(t1-t0), count/SECS(t1-t0));
     fflush(stdout);
 
     sprintf(outname, "%s.out", argv[2]);
