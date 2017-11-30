@@ -235,11 +235,18 @@ int main( int argc, char** argv ) {
 	f64 max_dist_rad = 50.0f / 111.325f; 
 
 	FILE* out = fopen("landmarks_in_range.csv", "w");
-	for (u32 i=0; i<hotel_count; i++) {
+        u32 i;
+        for (i=0; i<hotel_count; i++) {
 
 		u32 landmarks_in_distance[ ARRAY_SIZE(distances_kmsq) ] = { 0, 0, 0, 0, 0, 0 };
 		if( i % 10000 == 0 ) {
-			printf("\rProcessing hotels %u/%u %.3f%% (%.0f hotels/sec)", i, hotel_count, 100.0f * (f32)i / (f32)hotel_count, (f32)i / ( (f32)(clock() - start) / (f32)CLOCKS_PER_SEC )) ;
+                        f32 elapsed = ( (f32)(clock() - start) / (f32)CLOCKS_PER_SEC );
+                        printf("Processed %.3f%% (%u) of %u hotels in %.2fsecs @ %.0f hotels/sec\r",
+                                100.0f * (f32)i / (f32)hotel_count,
+                                i, hotel_count,
+                                elapsed,
+                                (f32)i / elapsed
+                        ) ;
 			fflush(stdout);
 		}
 
@@ -302,6 +309,15 @@ int main( int argc, char** argv ) {
 
 	  
 	  fclose(out);
+          {
+                f32 elapsed = ( (f32)(clock() - start) / (f32)CLOCKS_PER_SEC );
+                printf("Processed %.3f%% (%u) of %u hotels in %.2fsecs @ %.0f hotels/sec\n",
+                        100.0f * (f32)i / (f32)hotel_count,
+                        i, hotel_count,
+                        elapsed,
+                        (f32)i / elapsed
+                ) ;
+          }
   printf("\nTime spent distance finding %fs\n", (f32)(clock() - start) / (f32)CLOCKS_PER_SEC );
 	  
 // latlong a = {
