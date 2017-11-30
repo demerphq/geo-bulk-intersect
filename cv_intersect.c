@@ -1,5 +1,5 @@
 /*
-clang -std=c99 -g -Wall -Wextra -pedantic -Wpadded -Wno-gnu-empty-initializer -O3 -NDEBUG cv_intersect.c -o cv_intersect; and ./cv_intersect
+clang -std=c99 -g -Wall -Wextra -pedantic -Wpadded -Wno-gnu-empty-initializer -O3 -DNDEBUG cv_intersect.c -o cv_intersect; and ./cv_intersect
 */
 #include <assert.h>
 #include <math.h> /* fabs */
@@ -156,7 +156,7 @@ void read_csv( char* filename, latlong* items, u32 max_items, u32 *items_count )
                     printf("insufficient space: %u : %u\n", items_read, max_items);
                     exit(1);
                 };
-                scan_count = fscanf( csv, "%lu\t%lf\t%lf\n", &id, &lat, &lng );
+                scan_count = fscanf( csv, "%llu,%lf,%lf\n", &id, &lat, &lng );
                 if( scan_count !=3 || feof(csv) ) {
 			printf("EOF reached, read %u items from %s\n", items_read, filename);
 			break;
@@ -245,7 +245,7 @@ int main( int argc, char** argv ) {
 		  u32 cb = 0;
                   u32 landmarks_in_distance[ ARRAY_SIZE(distances_km) ] = { 0, 0, 0, 0, 0, 0 };
                   if( i % 10000 == 0 ) {
-			  printf("\rProcessing hotels %lu/%lu %.3f%% (%.0f hotels/sec)", 100.0f * (f32)i / (f32)hotel_count, i, hotel_count, (f32)i / ( (f32)(clock() - start) / (f32)CLOCKS_PER_SEC )) ;
+			  printf("\rProcessing hotels %u/%u %.3f%% (%.0f hotels/sec)", i, hotel_count, 100.0f * (f32)i / (f32)hotel_count, (f32)i / ( (f32)(clock() - start) / (f32)CLOCKS_PER_SEC )) ;
 			  fflush(stdout);
 		  }
 
@@ -285,7 +285,7 @@ int main( int argc, char** argv ) {
 			  }
 		  }
 
-                  fprintf(out, "%lu,%u,%u,%u,%u,%u,%u\n", hotels[i].d.id, landmarks_in_distance[0], landmarks_in_distance[1], landmarks_in_distance[2], landmarks_in_distance[3], landmarks_in_distance[4], landmarks_in_distance[5] );
+                  fprintf(out, "%llu,%u,%u,%u,%u,%u,%u\n", hotels[i].d.id, landmarks_in_distance[0], landmarks_in_distance[1], landmarks_in_distance[2], landmarks_in_distance[3], landmarks_in_distance[4], landmarks_in_distance[5] );
 	  }
 	  
 	  fclose(out);
