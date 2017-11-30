@@ -152,9 +152,11 @@ int main(int argc, char **argv) {
                     double lat_dist_sq= lat_dist * lat_dist;
                     double long_dist_sq= long_dist * long_dist;
                     double dist_sq = long_dist_sq + lat_dist_sq;
-			  if( hotel->id == 23805 ) {
-			  				  printf("C hotel 23805 distance to L %llu: %f H(%lf,%lf) - L(%lf,%lf)\n", landmark->id, sqrt(dist_sq), hotel->latitude, hotel->longitude, landmark->latitude, landmark->longitude );
-			  }
+                    if( hotel->id == 23805 && landmark->id == 900123653 ) {
+                        printf("C hotel 23805 distance to L %lu: %f H(%lf,%lf) - L(%lf,%lf)\n",
+                                landmark->id, sqrt(dist_sq), hotel->latitude, hotel->longitude, landmark->latitude, landmark->longitude );
+                    }
+
 
                     if (dist_sq <= D0) {
                         hotel->dist[0]++;
