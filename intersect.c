@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <math.h>
+#include <time.h> /* clock_t, clock, CLOCKS_PER_SEC */
 
 typedef struct geopoint {
     double latitude;
@@ -17,6 +18,10 @@ typedef struct geopoint {
 
 #define CMP(a,b) ( ((a) < (b)) ? -1 : ((a) == (b)) ? 0 : 1 )
 #define deg2rad(deg) (deg * M_PI / 180.0)
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846264338327950288
+#endif
 
 #define KM_LAT       111.325    /* Taken from Bookings::Geo::Point */
 #define KM_LONG_MUL  111.12     /* Taken from Bookings::Geo::Point */
@@ -41,16 +46,23 @@ int cmp_geopoint(const void *va, const void *vb) {
     return c;
 }
 
+#define SECS(n) ((double)(n) / (double)CLOCKS_PER_SEC)
 geopoint_t * read_geopoints(char *filename, uint64_t *count)
 {
     uint64_t n_points= 0;
     uint64_t s_points= 1000000;
     geopoint_t *points= malloc(sizeof(geopoint_t) * s_points);
     geopoint_t *point= points;
-    FILE *f_points = fopen(filename,"r");
+    FILE *f_points;
     char line[256];
+    double read_secs,sort_secs;
+    clock_t t0,t1;
+
+    t0 = clock();
     
+    f_points= fopen(filename,"r");
     assert(points);
+    assert(f_points);
 
     if (!fgets(line, sizeof(line), f_points)) {
         *count = 0;
@@ -72,11 +84,16 @@ geopoint_t * read_geopoints(char *filename, uint64_t *count)
         }
     }
     fclose(f_points);
-    
+    t1 = clock();
+    read_secs= SECS(t1-t0);
 
     qsort(points, n_points, sizeof(geopoint_t), cmp_geopoint);
+    t0 = clock();
+    sort_secs= SECS(t0-t1);
 
-    printf("Finished reading and sorting %lu points from '%s'\n", n_points, filename);
+
+    printf("Loaded %lu points from '%s', read took %.2lfsecs, sort took %.2lfsecs\n",
+            n_points, filename, read_secs, sort_secs);
 
     *count= n_points;
     return points;
@@ -96,6 +113,8 @@ int main(int argc, char **argv) {
     uint64_t count= 0;
     char outname[1024];
     FILE *out;
+    clock_t t0= clock();
+    clock_t t1;
 
     if (argc<3) { 
         printf("intersect H L\n");
@@ -168,8 +187,19 @@ int main(int argc, char **argv) {
                 hotel->dist[4],
                 hotel->dist[5]
         );
+        if (++count % 10000 == 0) {
+            t1 = clock();
+            printf("Processed %.2f%% (%lu) of hotels in %.2lfsecs @ %.2lf/sec\r",
+                    (double)count/(double)n_landmarks*100.0, count, SECS(t1-t0), count/SECS(t1-t0));
+            fflush(stdout);
+        }
     }
     fclose(out);
+    t1 = clock();
+    printf("Processed %.2f%% (%lu) of hotels in %.2lfsecs @ %.2lf/sec\n",
+            (double)count/(double)n_landmarks*100.0, count, SECS(t1-t0), count/SECS(t1-t0));
+    fflush(stdout);
+
     sprintf(outname, "%s.out", argv[2]);
     out= fopen(outname, "w");
     for ( landmark= landmarks; landmark < landmarks_end; landmark++ ) {
@@ -186,5 +216,8 @@ int main(int argc, char **argv) {
         );
     }
     fclose(out);
+    t0 = clock();
+    printf("Wrote %lu landmark records in %.2lfsecs\n",
+            n_landmarks, SECS(t0-t1));
     return 0;
 }
