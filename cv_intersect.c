@@ -121,8 +121,8 @@ internal u8 binary_search(latlong * landmarks, u32 num_landmarks, f64 target, u3
     }
     // 4. insert somewhere in the middle
     if (*index > 0 && *index < num_landmarks) {
-        assert(target < landmarks[*index].ll.lat);      // insert shifts the rest right, MUST be smaller otherwise it would have been found
-        assert(landmarks[*index - 1].ll.lat < target);  // element to the left is smaller
+        assert(target < landmarks[*index].lat);      // insert shifts the rest right, MUST be smaller otherwise it would have been found
+        assert(landmarks[*index - 1].lat < target);  // element to the left is smaller
     }
 
     return BINSEARCH_INSERT;
