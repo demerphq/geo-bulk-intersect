@@ -65,7 +65,6 @@ struct thread_info {            /* Used as argument to thread_start() */
     uint64_t n_hotels;
     geopoint_t *landmarks;
     uint64_t n_landmarks;
-    FILE *out;
     const char *type_hotels;
     double t0;
     uint64_t count;
@@ -249,7 +248,7 @@ static inline geopoint_t *scan_landmarks(geopoint_t * hotel, geopoint_t * lmw_st
 
 inline static uint64_t intersect_hotels(geopoint_t * const hotels, const uint64_t n_hotels,
                                         geopoint_t * const landmarks, const uint64_t n_landmarks,
-                                        const uint64_t swapped, FILE * out, const char *type_hotels, double t0)
+                                        const uint64_t swapped, const char *type_hotels, double t0)
 {
     const geopoint_t *hotels_end = hotels + n_hotels;
     const geopoint_t *landmarks_end = landmarks + n_landmarks;
@@ -260,10 +259,6 @@ inline static uint64_t intersect_hotels(geopoint_t * const hotels, const uint64_
 
     for (hotel = hotels; hotel < hotels_end; hotel++) {
         lmw_start = scan_landmarks(hotel, lmw_start, landmarks_end, swapped);
-        fprintf(out, "%lu\t%lf\t%lf\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\n",
-                hotel->id, hotel->latitude, hotel->longitude,
-                hotel->dist[0], hotel->dist[1], hotel->dist[2], hotel->dist[3], hotel->dist[4], hotel->dist[5]
-            );
         if (++count % 100 == 0) {
             const double t1 = dtime();
             const double elapsed = SECS(t1 - t0);
@@ -279,7 +274,7 @@ inline static uint64_t intersect_hotels(geopoint_t * const hotels, const uint64_
     return count;
 }
 
-void print_landmarks(const char *outname, geopoint_t * const landmarks, const uint64_t n_landmarks)
+void print_results(const char *outname, geopoint_t * const landmarks, const uint64_t n_landmarks)
 {
     const geopoint_t *landmarks_end = landmarks + n_landmarks;
     FILE *out = fopen(outname, "w");
@@ -305,7 +300,7 @@ static void *thread_start(void *arg)
     printf("thread start thread %lu; count: %lu hotels\n", tinfo->thread_num, tinfo->n_hotels);
     tinfo->count =
         intersect_hotels(tinfo->hotels, tinfo->n_hotels, tinfo->landmarks, tinfo->n_landmarks, tinfo->swapped,
-                         tinfo->out, tinfo->type_hotels, t0);
+                         tinfo->type_hotels, t0);
     t1 = dtime();
     printf("Processed %.2f%% (%lu) of %s in %.2lfsecs @ %.2lf/sec\n",
            (double)tinfo->count / (double)tinfo->n_hotels * 100.0, tinfo->count, tinfo->type_hotels, SECS(t1 - t0),
@@ -317,7 +312,7 @@ static void *thread_start(void *arg)
 
 inline static uint64_t partition_intersect_hotels(geopoint_t * const hotels, const uint64_t n_hotels,
                                                   geopoint_t * const landmarks, const uint64_t n_landmarks,
-                                                  const uint64_t swapped, FILE * out, const char *type_hotels,
+                                                  const uint64_t swapped, const char *type_hotels,
                                                   double t0)
 {
     struct thread_info tinfo[NUM_THREADS];
@@ -343,7 +338,6 @@ inline static uint64_t partition_intersect_hotels(geopoint_t * const hotels, con
         tinfo[i].landmarks = landmarks;
         tinfo[i].n_landmarks = n_landmarks;
         tinfo[i].swapped = swapped;
-        tinfo[i].out = out;
         tinfo[i].type_hotels = type_hotels;
         tinfo[i].t0 = t0;
 
@@ -426,24 +420,21 @@ int main(int argc, char **argv)
 
     assert(hotels);
     assert(landmarks);
-    sprintf(outname, "%s.out", name_hotels);
 
-    {
-        FILE *out;
-        out = fopen(outname, "w");
-        count = INTERSECT(hotels, n_hotels, landmarks, n_landmarks, swapped, out, type_hotels, t0);
-        fclose(out);
-    }
+    count = INTERSECT(hotels, n_hotels, landmarks, n_landmarks, swapped, type_hotels, t0);
 
     t1 = dtime();
     printf("Processed %.2f%% (%lu) of %s in %.2lfsecs @ %.2lf/sec\n",
            (double)count / (double)n_hotels * 100.0, count, type_hotels, SECS(t1 - t0), count / SECS(t1 - t0));
     fflush(stdout);
 
+    sprintf(outname, "%s.out", name_hotels);
+    print_results(outname, hotels, n_hotels);
+
     /* now print the landmark data out */
     sprintf(outname, "%s.out", name_landmarks);
 
-    print_landmarks(outname, landmarks, n_landmarks);
+    print_results(outname, landmarks, n_landmarks);
 
     t0 = dtime();
 
