@@ -39,23 +39,23 @@ typedef struct geopoint {
 #endif
 
 #define CMP(a,b) ( ((a) < (b)) ? -1 : ((a) == (b)) ? 0 : 1 )
-#define deg2rad(deg) (deg * M_PI / 180.0f)
+#define deg2rad(deg) ((deg) * M_PI / 180.0)
 
 #ifndef M_PI
-#define M_PI 3.14159265358979323846264338327950288f
+#define M_PI 3.14159265358979323846264338327950288
 #endif
 
-#define KM_LAT       111.325f   /* Taken from Bookings::Geo::Point */
-#define KM_LONG_MUL  111.12f    /* Taken from Bookings::Geo::Point */
+#define KM_LAT       111.325    /* Taken from Bookings::Geo::Point */
+#define KM_LONG_MUL  111.12     /* Taken from Bookings::Geo::Point */
 
-#define SQR(n) (n * n)
+#define SQR(n) ((n) * (n))
 
-#define D0 SQR(50.0f)
-#define D1 SQR(25.0f)
-#define D2 SQR(10.0f)
-#define D3 SQR( 5.0f)
-#define D4 SQR( 2.0f)
-#define D5 SQR( 1.0f)
+#define D0 SQR(50.0)
+#define D1 SQR(25.0)
+#define D2 SQR(10.0)
+#define D3 SQR( 5.0)
+#define D4 SQR( 2.0)
+#define D5 SQR( 1.0)
 
 #ifdef THREADS
 struct thread_info {            /* Used as argument to thread_start() */
@@ -94,7 +94,7 @@ double dtime()
 {
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    return (double)tv.tv_sec + ((double)tv.tv_usec / 1000000.0f);
+    return (double)tv.tv_sec + ((double)tv.tv_usec / 1000000.0);
 }
 
 geopoint_t *binsearch_start(geopoint_t * key, geopoint_t * points, uint64_t n)
@@ -137,6 +137,7 @@ static inline geopoint_t *read_geopoints(char *filename, uint64_t * count, char 
     char line[256];
     double read_secs, sort_secs;
     double t0, t1;
+    uintmax_t tmp_id;
 
     t0 = dtime();
 
@@ -149,7 +150,8 @@ static inline geopoint_t *read_geopoints(char *filename, uint64_t * count, char 
         return NULL;
     }
 
-    while (3 == fscanf(f_points, "%lu\t%lf\t%lf\n", &point->id, &point->latitude, &point->longitude)) {
+    while (3 == fscanf(f_points, "%ju\t%lf\t%lf\n", &tmp_id, &point->latitude, &point->longitude)) {
+        point->id = tmp_id;
         point->km_long_mul = (KM_LONG_MUL * cos(deg2rad(point->latitude)));
         point->km_to_meridian = point->longitude * point->km_long_mul;
         point->km_to_equator = point->latitude * KM_LAT;
@@ -172,7 +174,7 @@ static inline geopoint_t *read_geopoints(char *filename, uint64_t * count, char 
     t0 = dtime();
     sort_secs = SECS(t0 - t1);
 
-    printf("Loaded %lu %s from '%s', read took %.2lfsecs, sort took %.2lfsecs\n",
+    printf("Loaded %ju %s from '%s', read took %.2fsecs, sort took %.2fsecs\n",
            n_points, type, filename, read_secs, sort_secs);
 
     *count = n_points;
@@ -203,9 +205,9 @@ static inline geopoint_t *scan_landmarks(geopoint_t * hotel, geopoint_t * lmw_st
                 if (UNLIKELY(dist_sq <= D0)) {
                     if (0 && hotel->id == 23805 /*&& landmark->id == 900123653 */ ) {
                         /* 5.927530273 */
-                        printf("# hotel %lu distance to L %lu: %.10f H(%lf,%lf) - L(%lf,%lf) (%lu)\n",
-                               hotel->id, landmark->id, sqrt(dist_sq), hotel->latitude, hotel->longitude,
-                               landmark->latitude, landmark->longitude, swapped);
+                        printf("# hotel %ju distance to L %ju: %.10f H(%f,%f) - L(%f,%f) (%ju)\n",
+                               (uintmax_t) hotel->id, (uintmax_t) landmark->id, sqrt(dist_sq), hotel->latitude,
+                               hotel->longitude, landmark->latitude, landmark->longitude, (uintmax_t) swapped);
                     }
                     INCR(hotel->dist[0]);
                     INCR(landmark->dist[0]);
@@ -245,7 +247,7 @@ inline static uint64_t intersect_hotels(geopoint_t * const hotels, const uint64_
     geopoint_t *lmw_start = _THREADS ? binsearch_start(hotels, landmarks, n_landmarks) : landmarks;
     geopoint_t *hotel;
     uint64_t count = 0;
-    double last_elapsed = 0.0f;
+    double last_elapsed = 0.0;
 
     for (hotel = hotels; hotel < hotels_end; hotel++) {
         lmw_start = scan_landmarks(hotel, lmw_start, landmarks_end, swapped);
@@ -253,8 +255,8 @@ inline static uint64_t intersect_hotels(geopoint_t * const hotels, const uint64_
             const double t1 = dtime();
             const double elapsed = SECS(t1 - t0);
             if (elapsed - last_elapsed >= 1.0) {
-                printf("Processed %.2f%% (%lu) of %s in %.2lfsecs @ %.2lf/sec\r",
-                       (double)count / (double)n_hotels * 100.0, count, type_hotels, SECS(t1 - t0),
+                printf("Processed %.2f%% (%ju) of %s in %.2fsecs @ %.2f/sec\r",
+                       (double)count / (double)n_hotels * 100.0, (uintmax_t) count, type_hotels, SECS(t1 - t0),
                        count / SECS(t1 - t0));
                 fflush(stdout);
                 last_elapsed = elapsed;
@@ -271,10 +273,11 @@ void print_results(const char *outname, geopoint_t * const landmarks, const uint
     geopoint_t *landmark;
 
     for (landmark = landmarks; landmark < landmarks_end; landmark++) {
-        fprintf(out, "%lu\t%lf\t%lf\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\n",
-                landmark->id, landmark->latitude, landmark->longitude,
-                landmark->dist[0], landmark->dist[1], landmark->dist[2], landmark->dist[3],
-                landmark->dist[4], landmark->dist[5]
+        fprintf(out, "%ju\t%f\t%f\t%ju\t%ju\t%ju\t%ju\t%ju\t%ju\n",
+                (uintmax_t) landmark->id, landmark->latitude, landmark->longitude,
+                (uintmax_t) landmark->dist[0], (uintmax_t) landmark->dist[1],
+                (uintmax_t) landmark->dist[2], (uintmax_t) landmark->dist[3],
+                (uintmax_t) landmark->dist[4], (uintmax_t) landmark->dist[5]
             );
     }
     fclose(out);
@@ -287,14 +290,14 @@ static void *thread_start(void *arg)
     double t0 = dtime();
     double t1;
 
-    printf("thread start thread %lu; count: %lu hotels\n", tinfo->thread_num, tinfo->n_hotels);
+    printf("thread start thread %ju; count: %ju hotels\n", (uintmax_t) tinfo->thread_num, (uintmax_t) tinfo->n_hotels);
     tinfo->count =
         intersect_hotels(tinfo->hotels, tinfo->n_hotels, tinfo->landmarks, tinfo->n_landmarks, tinfo->swapped,
                          tinfo->type_hotels, t0);
     t1 = dtime();
-    printf("Processed %.2f%% (%lu) of %s in %.2lfsecs @ %.2lf/sec\n",
-           (double)tinfo->count / (double)tinfo->n_hotels * 100.0, tinfo->count, tinfo->type_hotels, SECS(t1 - t0),
-           tinfo->count / SECS(t1 - t0));
+    printf("Processed %.2f%% (%ju) of %s in %.2fsecs @ %.2f/sec\n",
+           (double)tinfo->count / (double)tinfo->n_hotels * 100.0, (uintmax_t) tinfo->count, tinfo->type_hotels,
+           SECS(t1 - t0), tinfo->count / SECS(t1 - t0));
     fflush(stdout);
 
     return &tinfo->count;
@@ -350,7 +353,7 @@ inline static uint64_t partition_intersect_hotels(geopoint_t * const hotels, con
             handle_error_en(s, "pthread_join");
         c = *((uint64_t *) res);
 
-        printf("Joined with thread %lu; returned value was %lu\n", tinfo[i].thread_num, c);
+        printf("Joined with thread %ju; returned value was %ju\n", (uintmax_t) tinfo[i].thread_num, (uintmax_t) c);
         count += c;
     }
     return count;
@@ -414,8 +417,9 @@ int main(int argc, char **argv)
     count = INTERSECT(hotels, n_hotels, landmarks, n_landmarks, swapped, type_hotels, t0);
 
     t1 = dtime();
-    printf("Processed %.2f%% (%lu) of %s in %.2lfsecs @ %.2lf/sec\n",
-           (double)count / (double)n_hotels * 100.0, count, type_hotels, SECS(t1 - t0), count / SECS(t1 - t0));
+    printf("Processed %.2f%% (%ju) of %s in %.2fsecs @ %.2f/sec\n",
+           (double)count / (double)n_hotels * 100.0, (uintmax_t) count, type_hotels, SECS(t1 - t0),
+           count / SECS(t1 - t0));
     fflush(stdout);
 
     sprintf(outname, "%s.out", name_hotels);
@@ -423,7 +427,8 @@ int main(int argc, char **argv)
 
     t0 = dtime();
 
-    printf("Wrote %lu %s records to %s.out in %.2lfsecs\n", n_hotels, type_hotels, name_hotels, SECS(t0 - t1));
+    printf("Wrote %ju %s records to %s.out in %.2fsecs\n", (uintmax_t) n_hotels, type_hotels, name_hotels,
+           SECS(t0 - t1));
 
     /* now print the landmark data out */
     sprintf(outname, "%s.out", name_landmarks);
@@ -432,7 +437,8 @@ int main(int argc, char **argv)
 
     t1 = dtime();
 
-    printf("Wrote %lu %s records to %s.out in %.2lfsecs\n", n_landmarks, type_landmarks, name_landmarks, SECS(t1 - t0));
-    printf("Finished in %.2lfsec\n", SECS(t1 - start_time));
+    printf("Wrote %ju %s records to %s.out in %.2fsecs\n", (uintmax_t) n_landmarks, type_landmarks, name_landmarks,
+           SECS(t1 - t0));
+    printf("Finished in %.2fsec\n", SECS(t1 - start_time));
     return 0;
 }

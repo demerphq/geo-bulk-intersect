@@ -7,7 +7,7 @@ clang -std=c99 -g -Wall -Wextra -pedantic -Wpadded -Wno-gnu-empty-initializer -O
 #include <stdlib.h>             /* exit qsort */
 #include <time.h>               /* clock_t, clock, CLOCKS_PER_SEC */
 #include <stdint.h>
-#include <string.h> /* memset */
+#include <string.h>             /* memset */
 
 #define internal static
 
@@ -121,8 +121,8 @@ internal u8 binary_search(latlong * landmarks, u32 num_landmarks, f64 target, u3
     }
     // 4. insert somewhere in the middle
     if (*index > 0 && *index < num_landmarks) {
-        assert(target < landmarks[*index].lat);      // insert shifts the rest right, MUST be smaller otherwise it would have been found
-        assert(landmarks[*index - 1].lat < target);  // element to the left is smaller
+        assert(target < landmarks[*index].lat); // insert shifts the rest right, MUST be smaller otherwise it would have been found
+        assert(landmarks[*index - 1].lat < target);     // element to the left is smaller
     }
 
     return BINSEARCH_INSERT;
@@ -210,10 +210,10 @@ int main(int argc, char **argv)
     start = clock();
 
     // space for output, which is for every hotel a u64 (2x \t f64) (6x \t u32) \n
-    u64 output_record_size = sizeof(u64) + 2*(sizeof(f64)+1) + 6*(sizeof(u32)+1) + 1;
+    u64 output_record_size = sizeof(u64) + 2 * (sizeof(f64) + 1) + 6 * (sizeof(u32) + 1) + 1;
     u64 output_bytes = output_record_size * hotel_count;
-    char* outbuf = malloc( output_bytes );
-    char* outbuf_ptr = outbuf;
+    char *outbuf = malloc(output_bytes);
+    char *outbuf_ptr = outbuf;
 
     u32 landmark_index = 0;
     f32 distances_kmsq[] = { 50.0f * 50.0f, 25.0f * 25.0f, 10.0f * 10.0f, 5.0f * 5.0f, 2.0f * 2.0f, 1.0f * 1.0f };
@@ -260,11 +260,11 @@ int main(int argc, char **argv)
             );
         outbuf_ptr += output_record_size;
     }
-    
-    FILE* result_dat = fopen("result.dat", "wb");
-    fwrite( outbuf, output_bytes, 1, result_dat );
-    fclose( result_dat );
-    
+
+    FILE *result_dat = fopen("result.dat", "wb");
+    fwrite(outbuf, output_bytes, 1, result_dat);
+    fclose(result_dat);
+
     {
         f32 elapsed = ((f32) (clock() - start) / (f32) CLOCKS_PER_SEC);
         printf("Processed %.3f%% (%u) of hotels in %.2fsecs @ %.0f hotels/sec\n",
