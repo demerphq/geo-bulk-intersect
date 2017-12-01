@@ -230,7 +230,7 @@ int main(int argc, char **argv)
     u32 bs;
     u32 landmark_index = 0;
     f32 distances_kmsq[] = { 50.0f * 50.0f, 25.0f * 25.0f, 10.0f * 10.0f, 5.0f * 5.0f, 2.0f * 2.0f, 1.0f * 1.0f };
-    f64 max_dist_rad = 50.0f / 111.325f;
+    f64 max_dist_lat = 50.0f / 111.325f;
 
     FILE *out = fopen("landmarks_in_range.csv", "w");
     u32 i;
@@ -244,16 +244,18 @@ int main(int argc, char **argv)
             fflush(stdout);
         }
 
-        bs = binary_search(landmarks_by_lat, landmark_count, hotels[i].d.lat, &landmark_index); // landmark_index is the index where inserting this lat would keep the array sorted
+        f32 start_lat = hotels[i].d.lat - max_dist_lat;
+
+        bs = binary_search(landmarks_by_lat, landmark_count, start_lat, &landmark_index); // landmark_index is the index where inserting this lat would keep the array sorted
         // printf ("Closest to H[%.2f, %.2f] = L[%.2f, %.2f] (%u)\n", hotels[i].d.lat, hotels[i].d.lng, landmarks_by_lat[landmark_index].d.lat, landmarks_by_lat[landmark_index].d.lng, landmark_index);
         if (bs == BINSEARCH_ERROR) {
             printf("binsearch error\n");
             exit(0);
         }
 
-        u32 up = landmark_index + 1;
+        u32 up = landmark_index;
         // printf("Checking increasing distances in rad from %lu to %lu (lat dist: %f)\n", up, landmark_count, max_dist_rad);
-        f32 max_dist = hotels[i].d.lat + max_dist_rad;
+        f32 max_dist = hotels[i].d.lat + max_dist_lat;
         while (landmarks_by_lat[up].d.lat < max_dist) {
             f32 distance = calculate_distance2(landmarks_by_lat[up], hotels[i]);
 
@@ -277,29 +279,6 @@ int main(int argc, char **argv)
             }
             up++;
         }
-
-        u32 down = landmark_index;
-        // printf("Checking decreasing distances in rad from %lu to %lu (rad dist: %f)\n", up, num_landmarks, distances_rad[0]);
-        max_dist = hotels[i].d.lat - max_dist_rad;
-        while (down > 0 && landmarks_by_lat[down].d.lat > max_dist) {
-            f32 distance = calculate_distance2(landmarks_by_lat[down], hotels[i]);
-
-            for (u32 d = 0; d < ARRAY_SIZE(distances_kmsq); d++) {      // just rad
-                if (distance <= (distances_kmsq[d])) {
-                    if (0 && d == 0 && hotels[i].d.id == 23805 /*&& landmark->id == 900123653 */ ) {
-                        /* 5.927530273 */
-                        printf("# hotel %lu distance to L %lu: %.10f H(%lf,%lf) - L(%lf,%lf)\n",
-                               hotels[i].d.id, landmarks_by_lat[down].d.id, sqrt(distance), hotels[i].d.lat,
-                               hotels[i].d.lng, landmarks_by_lat[down].d.lat, landmarks_by_lat[down].d.lng);
-                    }
-                    landmarks_in_distance[d]++;
-                } else {
-                    break;
-                }
-            }
-            down--;
-        }
-        // printf("Total lat candidates: %u\n", cblat);
 
         fprintf(out, "%lu\t%lf\t%lf\t\t%u\t%u\t%u\t%u\t%u\t%u\n", hotels[i].d.id, hotels[i].d.lat, hotels[i].d.lng,
                 landmarks_in_distance[0], landmarks_in_distance[1], landmarks_in_distance[2], landmarks_in_distance[3],
