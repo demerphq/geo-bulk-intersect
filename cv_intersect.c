@@ -7,7 +7,7 @@ clang -std=c99 -g -Wall -Wextra -pedantic -Wpadded -Wno-gnu-empty-initializer -O
 #include <stdlib.h>             /* exit qsort */
 #include <time.h>               /* clock_t, clock, CLOCKS_PER_SEC */
 #include <stdint.h>
-#include <string.h>
+#include <string.h> /* memset */
 
 #define internal static
 
@@ -209,11 +209,16 @@ int main(int argc, char **argv)
 
     start = clock();
 
+    // space for output, which is for every hotel a u64 (2x \t f64) (6x \t u32) \n
+    u64 output_record_size = sizeof(u64) + 2*(sizeof(f64)+1) + 6*(sizeof(u32)+1) + 1;
+    u64 output_bytes = output_record_size * hotel_count;
+    char* outbuf = malloc( output_bytes );
+    char* outbuf_ptr = outbuf;
+
     u32 landmark_index = 0;
     f32 distances_kmsq[] = { 50.0f * 50.0f, 25.0f * 25.0f, 10.0f * 10.0f, 5.0f * 5.0f, 2.0f * 2.0f, 1.0f * 1.0f };
     f64 max_dist_lat = 50.0f / 111.325f;
 
-    FILE *out = fopen("landmarks_in_range.csv", "w");
     u32 landmarks_in_distance[ARRAY_SIZE(distances_kmsq)];
 
     u32 i;
@@ -249,13 +254,17 @@ int main(int argc, char **argv)
             up++;
         }
 
-        fprintf(out, "%lu\t%lf\t%lf\t\t%u\t%u\t%u\t%u\t%u\t%u\n", hotels[i].id, hotels[i].lat, hotels[i].lng,
+        sprintf(outbuf_ptr, "%llu\t%lf\t%lf\t\t%u\t%u\t%u\t%u\t%u\t%u\n", hotels[i].id, hotels[i].lat, hotels[i].lng,
                 landmarks_in_distance[0], landmarks_in_distance[1], landmarks_in_distance[2], landmarks_in_distance[3],
                 landmarks_in_distance[4], landmarks_in_distance[5]
             );
+        outbuf_ptr += output_record_size;
     }
-
-    fclose(out);
+    
+    FILE* result_dat = fopen("result.dat", "wb");
+    fwrite( outbuf, output_bytes, 1, result_dat );
+    fclose( result_dat );
+    
     {
         f32 elapsed = ((f32) (clock() - start) / (f32) CLOCKS_PER_SEC);
         printf("Processed %.3f%% (%u) of hotels in %.2fsecs @ %.0f hotels/sec\n",
