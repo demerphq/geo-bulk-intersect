@@ -202,12 +202,6 @@ int main(int argc, char **argv)
     qsort(landmarks_by_lat, landmark_count, sizeof(latlong), compare_lat);
     printf("Time spent sorting landmarks %fs\n", (f32) (clock() - start) / (f32) CLOCKS_PER_SEC);
 
-#if 0
-    for (u32 n = 0; n < 10; n++) {
-        printf("%u: [%.2f, %.2f]\n", landmarks_by_lat[n].id, landmarks_by_lat[n].lat, landmarks_by_lat[n].lng);
-    }
-#endif
-
     start = clock();
 
     u32 landmark_index = 0;
@@ -240,20 +234,8 @@ int main(int argc, char **argv)
             f32 distance = calculate_distance2(landmarks_by_lat[up], hotels[i]);
 
             for (u32 d = 0; d < ARRAY_SIZE(distances_kmsq); d++) {      // just rad
-#if 0
-                u32 increment = distance <= distances_kmsq[d] ? 1 : 0;
-                landmarks_in_distance[d] += increment;
-#endif
-                if (distance <= (distances_kmsq[d])) {
-#if 0                    
-                    if (0 && d == 0 && hotels[i].id == 23805 /*&& landmark->id == 900123653 */ ) {
-                        /* 5.927530273 */
 
-                        printf("# hotel %lu distance to L %lu: %.10f H(%lf,%lf) - L(%lf,%lf)\n",
-                               hotels[i].id, landmarks_by_lat[up].id, sqrt(distance), hotels[i].lat,
-                               hotels[i].lng, landmarks_by_lat[up].lat, landmarks_by_lat[up].lng);
-                    }
-#endif                    
+                if (distance <= (distances_kmsq[d])) {
                     landmarks_in_distance[d]++;
                 } else {
                     break;
