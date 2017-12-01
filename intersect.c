@@ -299,12 +299,18 @@ void print_landmarks(const char *outname, geopoint_t * const landmarks, const ui
 static void *thread_start(void *arg)
 {
     struct thread_info *tinfo = arg;
+    double t0 = dtime();
+    double t1;
 
     printf("thread start thread %lu; count: %lu hotels\n", tinfo->thread_num, tinfo->n_hotels);
     tinfo->count =
         intersect_hotels(tinfo->hotels, tinfo->n_hotels, tinfo->landmarks, tinfo->n_landmarks, tinfo->swapped,
-                         tinfo->out, tinfo->type_hotels, dtime());
-    printf("thread end thread %lu; \n", tinfo->thread_num);
+                         tinfo->out, tinfo->type_hotels, t0);
+    t1 = dtime();
+    printf("Processed %.2f%% (%lu) of %s in %.2lfsecs @ %.2lf/sec\n",
+           (double)tinfo->count / (double)tinfo->n_hotels * 100.0, tinfo->count, tinfo->type_hotels, SECS(t1 - t0),
+           tinfo->count / SECS(t1 - t0));
+    fflush(stdout);
 
     return &tinfo->count;
 }
