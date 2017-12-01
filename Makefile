@@ -10,7 +10,7 @@ INDENT_OPTS=-nbad -bap -nbc -bbo -hnl -br -brs -c33 -cd33 -ncdb -ce -ci4 -cli0 -
 all: cv_intersect intersect intersect_thr
 
 cv_intersect: cv_intersect.c
-	inden $(INDENT_OPTS) -nut $<
+	indent $(INDENT_OPTS) -nut $<
 	$(CC) -o $@ $< $(CFLAGS) $(LIBS)
 
 intersect: intersect.c
