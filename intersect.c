@@ -83,9 +83,11 @@ struct thread_info {            /* Used as argument to thread_start() */
 
 #define INCR(v) __atomic_add_fetch(&v,1,__ATOMIC_SEQ_CST)
 #define INTERSECT partition_intersect_hotels
+#define _THREADS 1
 #else                           /* !THREADS */
 #define INTERSECT intersect_hotels
 #define INCR(v) v++
+#define _THREADS 0
 #endif                          /* THREADS */
 
 double dtime()
@@ -95,31 +97,19 @@ double dtime()
     return (double)tv.tv_sec + ((double)tv.tv_usec / 1000000.0f);
 }
 
-geopoint_t *binsearch_start(geopoint_t * hotel, geopoint_t * landmarks, uint64_t n_landmarks)
+geopoint_t *binsearch_start(geopoint_t * key, geopoint_t * points, uint64_t n)
 {
-    int result;
-    uint64_t num = n_landmarks;
-    geopoint_t *base = landmarks;
-
-    while (num > 0) {
-        geopoint_t *pivot = base + (num >> 1);
-        if (pivot->km_to_equator - hotel->km_to_equator > -50.0f &&
-            (pivot == landmarks || (pivot - 1)->km_to_equator - hotel->km_to_equator < -50.0f)) {
-            result = 0;
+    uint64_t l = 0;
+    uint64_t h = n;             // Not n - 1
+    while (l < h) {
+        uint64_t mid = (l + h) / 2;
+        if (key->latitude - 50.0 <= points[mid].latitude) {
+            h = mid;
         } else {
-            result = pivot->km_to_equator - hotel->km_to_equator < -50.f ? 1 : -1;
+            l = mid + 1;
         }
-
-        if (result == 0)
-            return pivot;
-
-        if (result > 0) {
-            base = pivot + 1;
-            num--;
-        }
-        num >>= 1;
     }
-    return NULL;
+    return points + l;
 }
 
 int cmp_geopoint(const void *va, const void *vb)
@@ -252,7 +242,7 @@ inline static uint64_t intersect_hotels(geopoint_t * const hotels, const uint64_
 {
     const geopoint_t *hotels_end = hotels + n_hotels;
     const geopoint_t *landmarks_end = landmarks + n_landmarks;
-    geopoint_t *lmw_start = 0 ? landmarks : binsearch_start(hotels, landmarks, n_landmarks);
+    geopoint_t *lmw_start = _THREADS ? binsearch_start(hotels, landmarks, n_landmarks) : landmarks;
     geopoint_t *hotel;
     uint64_t count = 0;
     double last_elapsed = 0.0f;
