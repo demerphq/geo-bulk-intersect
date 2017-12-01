@@ -117,23 +117,23 @@ internal u8 binary_search(latlong * landmarks, u32 num_landmarks, f64 target, u3
     }
     // 3. array has elements, and we should insert at the beginning
     if (num_landmarks > 0 && *index == 0) {
-        assert(target < landmarks[0].lat);    // MUST be smaller, otherwise it would have been found if equal
+        assert(target < landmarks[0].lat);      // MUST be smaller, otherwise it would have been found if equal
     }
     // 4. insert somewhere in the middle
     if (*index > 0 && *index < num_landmarks) {
-        assert(target < landmarks[*index].ll.lat);    // insert shifts the rest right, MUST be smaller otherwise it would have been found
-        assert(landmarks[*index - 1].ll.lat < target);        // element to the left is smaller
+        assert(target < landmarks[*index].ll.lat);      // insert shifts the rest right, MUST be smaller otherwise it would have been found
+        assert(landmarks[*index - 1].ll.lat < target);  // element to the left is smaller
     }
 
     return BINSEARCH_INSERT;
 }
 
-void read_csv(char *filename, latlong *items, u32 max_items, u32 *items_count)
+void read_csv(char *filename, latlong * items, u32 max_items, u32 * items_count)
 {
     FILE *data;
     data = fopen(filename, "r");
     // skip the first line, it has a mysql header thing
-    char line[256];    
+    char line[256];
     if (!fgets(line, sizeof(line), data)) {
         *items_count = 0;
         return;
@@ -146,12 +146,14 @@ void read_csv(char *filename, latlong *items, u32 max_items, u32 *items_count)
             printf("insufficient space: %u : %u\n", items_read, max_items);
             exit(1);
         };
-        scan_count = fscanf(data, "%lu\t%lf\t%lf\n", &(items[items_read].id), &(items[items_read].lat), &(items[items_read].lng));
+        scan_count =
+            fscanf(data, "%lu\t%lf\t%lf\n", &(items[items_read].id), &(items[items_read].lat),
+                   &(items[items_read].lng));
         if (scan_count != 3 || feof(data)) {
             printf("EOF reached, read %u items from %s\n", items_read, filename);
             break;
         } else {
-            items[items_read].cos_lat = cos( (pi/180.0f) * items[items_read].lat );
+            items[items_read].cos_lat = cos((pi / 180.0f) * items[items_read].lat);
             items_read++;
         }
     }
@@ -184,7 +186,7 @@ int main(int argc, char **argv)
 
     u32 landmark_count;
     read_csv(argv[2], landmarks_by_lat, max_landmarks, &landmark_count);
-    landmarks_by_lat[landmark_count].lat = 5000; // guard latlong that is bigger than aby real ones
+    landmarks_by_lat[landmark_count].lat = 5000;        // guard latlong that is bigger than aby real ones
     landmark_count++;
 
     printf("Time spent reading data %fs\n", (f32) (clock() - start) / (f32) CLOCKS_PER_SEC);
@@ -213,11 +215,11 @@ int main(int argc, char **argv)
 
     FILE *out = fopen("landmarks_in_range.csv", "w");
     u32 landmarks_in_distance[ARRAY_SIZE(distances_kmsq)];
-    
-    u32 i;
-    for(  i=0; i < hotel_count; i++ ) {
 
-        memset( landmarks_in_distance, 0, ARRAY_SIZE(distances_kmsq)*sizeof(u32) );
+    u32 i;
+    for (i = 0; i < hotel_count; i++) {
+
+        memset(landmarks_in_distance, 0, ARRAY_SIZE(distances_kmsq) * sizeof(u32));
         if (i % 10000 == 0) {
             f32 elapsed = ((f32) (clock() - start) / (f32) CLOCKS_PER_SEC);
             printf("Processed %.3f%% (%u) of hotels in %.2fsecs @ %.0f hotels/sec\r",
@@ -227,7 +229,7 @@ int main(int argc, char **argv)
 
         f32 start_lat = hotels[i].lat - max_dist_lat;
 
-        binary_search(landmarks_by_lat, landmark_count, start_lat, &landmark_index); // landmark_index is the index where inserting this lat would keep the array sorted
+        binary_search(landmarks_by_lat, landmark_count, start_lat, &landmark_index);    // landmark_index is the index where inserting this lat would keep the array sorted
         // printf ("Closest to H[%.2f, %.2f] = L[%.2f, %.2f] (%u)\n", hotels[i].lat, hotels[i].lng, landmarks_by_lat[landmark_index].lat, landmarks_by_lat[landmark_index].lng, landmark_index);
 
         u32 up = landmark_index;
