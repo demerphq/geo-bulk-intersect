@@ -7,6 +7,7 @@ clang -std=c99 -g -Wall -Wextra -pedantic -Wpadded -Wno-gnu-empty-initializer -O
 #include <stdlib.h>             /* exit qsort */
 #include <time.h>               /* clock_t, clock, CLOCKS_PER_SEC */
 #include <stdint.h>
+#include <string.h>
 
 #define internal static
 
