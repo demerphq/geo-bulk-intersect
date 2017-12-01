@@ -200,6 +200,9 @@ int main(int argc, char **argv)
 
     u32 landmark_count;
     read_csv(argv[2], landmarks_by_lat, max_landmarks, &landmark_count);
+    landmarks_by_lat[landmark_count].d.lat = 5000; // guard latlong that is bigger than aby real ones
+    landmark_count++;
+
     printf("Time spent reading data %fs\n", (f32) (clock() - start) / (f32) CLOCKS_PER_SEC);
 
     // read id, long, lat
@@ -251,7 +254,7 @@ int main(int argc, char **argv)
         u32 up = landmark_index + 1;
         // printf("Checking increasing distances in rad from %lu to %lu (lat dist: %f)\n", up, landmark_count, max_dist_rad);
         f32 max_dist = hotels[i].d.lat + max_dist_rad;
-        while (up < landmark_count && landmarks_by_lat[up].d.lat < max_dist) {
+        while (landmarks_by_lat[up].d.lat < max_dist) {
             f32 distance = calculate_distance2(landmarks_by_lat[up], hotels[i]);
 
             for (u32 d = 0; d < ARRAY_SIZE(distances_kmsq); d++) {      // just rad
