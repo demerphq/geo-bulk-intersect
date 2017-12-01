@@ -382,6 +382,7 @@ int main(int argc, char **argv)
     char *type_landmarks = "landmarks";
     uint64_t count = 0;
     double t0 = dtime();
+    double start_time = t0;
     double t1;
     uint64_t swapped = 0;
     char outname[1024];
@@ -430,13 +431,18 @@ int main(int argc, char **argv)
     sprintf(outname, "%s.out", name_hotels);
     print_results(outname, hotels, n_hotels);
 
+    t0 = dtime();
+
+    printf("Wrote %lu %s records to %s.out in %.2lfsecs\n", n_hotels, type_hotels, name_hotels, SECS(t0 - t1));
+
     /* now print the landmark data out */
     sprintf(outname, "%s.out", name_landmarks);
 
     print_results(outname, landmarks, n_landmarks);
 
-    t0 = dtime();
+    t1 = dtime();
 
-    printf("Wrote %lu %s records to %s.out in %.2lfsecs\n", n_landmarks, type_landmarks, name_landmarks, SECS(t0 - t1));
+    printf("Wrote %lu %s records to %s.out in %.2lfsecs\n", n_landmarks, type_landmarks, name_landmarks, SECS(t1 - t0));
+    printf("Finished in %.2lfsec\n", SECS(t1 - start_time));
     return 0;
 }
