@@ -29,7 +29,7 @@ typedef struct latlong {
 #define pi  3.14159265358979f
 #define km_per_lat  111.325f
 
-f64 km_per_lng(latlong ll)
+inline f64 km_per_lng(latlong ll)
 {
     f64 kml = 111.12f * ll.cos_lat;
     return kml;
@@ -127,43 +127,35 @@ internal u8 binary_search(latlong * landmarks, u32 num_landmarks, f64 target, u3
     return BINSEARCH_INSERT;
 }
 
-void read_csv(char *filename, latlong * items, u32 max_items, u32 * items_count)
+void read_csv(char *filename, latlong *items, u32 max_items, u32 *items_count)
 {
-    FILE *csv;
-    csv = fopen(filename, "r");
+    FILE *data;
+    data = fopen(filename, "r");
     // skip the first line, it has a mysql header thing
-    char header[256];
-    int scan_count = fscanf(csv, "%s%s%s%s", header, header + 20, header + 40, header + 60);
-    // printf("Header: %s\n", header);
-    u64 id;
-    f64 lat, lng;
+    char line[256];    
+    if (!fgets(line, sizeof(line), data)) {
+        *items_count = 0;
+        return;
+    }
 
+    u32 scan_count;
     u32 items_read = 0;
     while (1) {
         if (items_read >= max_items) {
             printf("insufficient space: %u : %u\n", items_read, max_items);
             exit(1);
         };
-        scan_count = fscanf(csv, "%lu\t%lf\t%lf\n", &id, &lat, &lng);
-        if (scan_count != 3 || feof(csv)) {
+        scan_count = fscanf(data, "%lu\t%lf\t%lf\n", &(items[items_read].id), &(items[items_read].lat), &(items[items_read].lng));
+        if (scan_count != 3 || feof(data)) {
             printf("EOF reached, read %u items from %s\n", items_read, filename);
             break;
         } else {
-            latlong L = {
-                .id = id,
-                .lat = lat,
-                .lng = lng,
-                .cos_lat = cos(pi * lat / 180.0f),
-            };
-            items[items_read] = L;
-            if (items_read % 1000 == 0) {
-                // printf("\rRead %u\n", items_read);
-            }
+            items[items_read].cos_lat = cos( (pi/180.0f) * items[items_read].lat );
             items_read++;
         }
     }
 
-    fclose(csv);
+    fclose(data);
 
     *items_count = items_read;
 }
