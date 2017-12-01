@@ -6,6 +6,15 @@
 #include <assert.h>
 #include <math.h>
 #include <time.h>               /* clock_t, clock, CLOCKS_PER_SEC */
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <ctype.h>
+#include <sys/time.h>
+#ifdef THREADS
+#include <pthread.h>
+#endif
 
 typedef struct geopoint {
     double latitude;
@@ -48,7 +57,71 @@ typedef struct geopoint {
 #define D4 SQR( 2.0f)
 #define D5 SQR( 1.0f)
 
+#ifdef THREADS
+struct thread_info {            /* Used as argument to thread_start() */
+    pthread_t thread_id;        /* ID returned by pthread_create() */
+    uint64_t thread_num;        /* Application-defined thread # */
+    geopoint_t *hotels;
+    uint64_t n_hotels;
+    geopoint_t *landmarks;
+    uint64_t n_landmarks;
+    FILE *out;
+    const char *type_hotels;
+    double t0;
+    uint64_t count;
+    uint64_t swapped;
+};
+
+#define handle_error_en(en, msg) \
+    do { errno = en; perror(msg); exit(EXIT_FAILURE); } while (0)
+
+#define handle_error(msg) \
+    do { perror(msg); exit(EXIT_FAILURE); } while (0)
+
+#ifndef NUM_THREADS
+#define NUM_THREADS 4
+#endif
+
+#define INCR(v) __atomic_add_fetch(&v,1,__ATOMIC_SEQ_CST)
+#define INTERSECT partition_intersect_hotels
+#else                           /* !THREADS */
+#define INTERSECT intersect_hotels
 #define INCR(v) v++
+#endif                          /* THREADS */
+
+double dtime()
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (double)tv.tv_sec + ((double)tv.tv_usec / 1000000.0f);
+}
+
+geopoint_t *binsearch_start(geopoint_t * hotel, geopoint_t * landmarks, uint64_t n_landmarks)
+{
+    int result;
+    uint64_t num = n_landmarks;
+    geopoint_t *base = landmarks;
+
+    while (num > 0) {
+        geopoint_t *pivot = base + (num >> 1);
+        if (pivot->km_to_equator - hotel->km_to_equator > -50.0f &&
+            (pivot == landmarks || (pivot - 1)->km_to_equator - hotel->km_to_equator < -50.0f)) {
+            result = 0;
+        } else {
+            result = pivot->km_to_equator - hotel->km_to_equator < -50.f ? 1 : -1;
+        }
+
+        if (result == 0)
+            return pivot;
+
+        if (result > 0) {
+            base = pivot + 1;
+            num--;
+        }
+        num >>= 1;
+    }
+    return NULL;
+}
 
 int cmp_geopoint(const void *va, const void *vb)
 {
@@ -64,7 +137,7 @@ int cmp_geopoint(const void *va, const void *vb)
     return c;
 }
 
-#define SECS(n) ((double)(n) / (double)CLOCKS_PER_SEC)
+#define SECS(n) ((double)(n))
 static inline geopoint_t *read_geopoints(char *filename, uint64_t * count, char *type)
 {
     uint64_t n_points = 0;
@@ -74,9 +147,9 @@ static inline geopoint_t *read_geopoints(char *filename, uint64_t * count, char 
     FILE *f_points;
     char line[256];
     double read_secs, sort_secs;
-    clock_t t0, t1;
+    double t0, t1;
 
-    t0 = clock();
+    t0 = dtime();
 
     f_points = fopen(filename, "r");
     assert(points);
@@ -103,11 +176,11 @@ static inline geopoint_t *read_geopoints(char *filename, uint64_t * count, char 
         }
     }
     fclose(f_points);
-    t1 = clock();
+    t1 = dtime();
     read_secs = SECS(t1 - t0);
 
     qsort(points, n_points, sizeof(geopoint_t), cmp_geopoint);
-    t0 = clock();
+    t0 = dtime();
     sort_secs = SECS(t0 - t1);
 
     printf("Loaded %lu %s from '%s', read took %.2lfsecs, sort took %.2lfsecs\n",
@@ -118,7 +191,7 @@ static inline geopoint_t *read_geopoints(char *filename, uint64_t * count, char 
 }
 
 static inline geopoint_t *scan_landmarks(geopoint_t * hotel, geopoint_t * lmw_start, const geopoint_t * landmarks_end,
-                                         int swapped)
+                                         uint64_t swapped)
 {
     geopoint_t *landmark;
     for (landmark = lmw_start; landmark < landmarks_end; landmark++) {
@@ -141,7 +214,7 @@ static inline geopoint_t *scan_landmarks(geopoint_t * hotel, geopoint_t * lmw_st
                 if (UNLIKELY(dist_sq <= D0)) {
                     if (0 && hotel->id == 23805 /*&& landmark->id == 900123653 */ ) {
                         /* 5.927530273 */
-                        printf("# hotel %lu distance to L %lu: %.10f H(%lf,%lf) - L(%lf,%lf) (%d)\n",
+                        printf("# hotel %lu distance to L %lu: %.10f H(%lf,%lf) - L(%lf,%lf) (%lu)\n",
                                hotel->id, landmark->id, sqrt(dist_sq), hotel->latitude, hotel->longitude,
                                landmark->latitude, landmark->longitude, swapped);
                     }
@@ -176,11 +249,11 @@ static inline geopoint_t *scan_landmarks(geopoint_t * hotel, geopoint_t * lmw_st
 
 inline static uint64_t intersect_hotels(geopoint_t * const hotels, const uint64_t n_hotels,
                                         geopoint_t * const landmarks, const uint64_t n_landmarks,
-                                        const int swapped, FILE * out, const char *type_hotels, clock_t t0)
+                                        const uint64_t swapped, FILE * out, const char *type_hotels, double t0)
 {
     const geopoint_t *hotels_end = hotels + n_hotels;
     const geopoint_t *landmarks_end = landmarks + n_landmarks;
-    geopoint_t *lmw_start = landmarks;
+    geopoint_t *lmw_start = 0 ? landmarks : binsearch_start(hotels, landmarks, n_landmarks);
     geopoint_t *hotel;
     uint64_t count = 0;
     double last_elapsed = 0.0f;
@@ -192,7 +265,7 @@ inline static uint64_t intersect_hotels(geopoint_t * const hotels, const uint64_
                 hotel->dist[0], hotel->dist[1], hotel->dist[2], hotel->dist[3], hotel->dist[4], hotel->dist[5]
             );
         if (++count % 100 == 0) {
-            const clock_t t1 = clock();
+            const double t1 = dtime();
             const double elapsed = SECS(t1 - t0);
             if (elapsed - last_elapsed >= 1.0) {
                 printf("Processed %.2f%% (%lu) of %s in %.2lfsecs @ %.2lf/sec\r",
@@ -222,6 +295,79 @@ void print_landmarks(const char *outname, geopoint_t * const landmarks, const ui
     fclose(out);
 }
 
+#ifdef THREADS
+static void *thread_start(void *arg)
+{
+    struct thread_info *tinfo = arg;
+
+    printf("thread start thread %lu; count: %lu hotels\n", tinfo->thread_num, tinfo->n_hotels);
+    tinfo->count =
+        intersect_hotels(tinfo->hotels, tinfo->n_hotels, tinfo->landmarks, tinfo->n_landmarks, tinfo->swapped,
+                         tinfo->out, tinfo->type_hotels, dtime());
+    printf("thread end thread %lu; \n", tinfo->thread_num);
+
+    return &tinfo->count;
+}
+
+inline static uint64_t partition_intersect_hotels(geopoint_t * const hotels, const uint64_t n_hotels,
+                                                  geopoint_t * const landmarks, const uint64_t n_landmarks,
+                                                  const uint64_t swapped, FILE * out, const char *type_hotels,
+                                                  double t0)
+{
+    struct thread_info tinfo[NUM_THREADS];
+    uint64_t incr = (n_hotels + NUM_THREADS - 1) / NUM_THREADS;
+    uint64_t i;
+    uint64_t count = 0;
+    int s;
+    pthread_attr_t attr;
+
+    s = pthread_attr_init(&attr);
+    if (s != 0)
+        handle_error_en(s, "pthread_attr_init");
+
+    for (i = 0; i < NUM_THREADS; i++) {
+        uint64_t start = (incr * i);
+        uint64_t end = start + incr;
+        if (end > n_hotels)
+            end = n_hotels;
+
+        tinfo[i].thread_num = i;
+        tinfo[i].hotels = hotels + start;
+        tinfo[i].n_hotels = end - start;
+        tinfo[i].landmarks = landmarks;
+        tinfo[i].n_landmarks = n_landmarks;
+        tinfo[i].swapped = swapped;
+        tinfo[i].out = out;
+        tinfo[i].type_hotels = type_hotels;
+        tinfo[i].t0 = t0;
+
+        s = pthread_create(&tinfo[i].thread_id, &attr, &thread_start, &tinfo[i]);
+        if (s != 0)
+            handle_error_en(s, "pthread_create");
+
+    }
+
+    s = pthread_attr_destroy(&attr);
+    if (s != 0)
+        handle_error_en(s, "pthread_attr_destroy");
+
+    /* Now join with each thread, and display its returned value */
+
+    for (i = 0; i < NUM_THREADS; i++) {
+        void *res;
+        uint64_t c;
+        s = pthread_join(tinfo[i].thread_id, &res);
+        if (s != 0)
+            handle_error_en(s, "pthread_join");
+        c = *((uint64_t *) res);
+
+        printf("Joined with thread %lu; returned value was %lu\n", tinfo[i].thread_num, c);
+        count += c;
+    }
+    return count;
+}
+#endif
+
 int main(int argc, char **argv)
 {
     uint64_t n_hotels = 0;
@@ -236,9 +382,9 @@ int main(int argc, char **argv)
     char *type_hotels = "hotels";
     char *type_landmarks = "landmarks";
     uint64_t count = 0;
-    clock_t t0 = clock();
-    clock_t t1;
-    int swapped = 0;
+    double t0 = dtime();
+    double t1;
+    uint64_t swapped = 0;
     char outname[1024];
 
     if (argc < 3) {
@@ -279,11 +425,11 @@ int main(int argc, char **argv)
     {
         FILE *out;
         out = fopen(outname, "w");
-        count = intersect_hotels(hotels, n_hotels, landmarks, n_landmarks, swapped, out, type_hotels, t0);
+        count = INTERSECT(hotels, n_hotels, landmarks, n_landmarks, swapped, out, type_hotels, t0);
         fclose(out);
     }
 
-    t1 = clock();
+    t1 = dtime();
     printf("Processed %.2f%% (%lu) of %s in %.2lfsecs @ %.2lf/sec\n",
            (double)count / (double)n_hotels * 100.0, count, type_hotels, SECS(t1 - t0), count / SECS(t1 - t0));
     fflush(stdout);
@@ -293,7 +439,7 @@ int main(int argc, char **argv)
 
     print_landmarks(outname, landmarks, n_landmarks);
 
-    t0 = clock();
+    t0 = dtime();
 
     printf("Wrote %lu %s records to %s.out in %.2lfsecs\n", n_landmarks, type_landmarks, name_landmarks, SECS(t0 - t1));
     return 0;

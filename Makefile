@@ -5,7 +5,7 @@ LIBS=-lm
 
 .PHONY: all
 
-all: cv_intersect intersect
+all: cv_intersect intersect intersect_thr
 
 cv_intersect: cv_intersect.c
 	indent -linux -l120 -i4 -nut $<
@@ -15,10 +15,16 @@ intersect: intersect.c
 	indent -linux -l120 -i4 -nut $<
 	$(CC) -o $@ $< $(CFLAGS) $(LIBS)
 
+intersect_thr: intersect.c
+	indent -linux -l120 -i4 -nut $<
+	$(CC) -o $@ $< $(CFLAGS) -DTHREADS -DNUM_THREADS=4 $(LIBS) -pthread
+
 .PHONY: test
 
-test: intersect cv_intersect
+test: intersect intersect_thr cv_intersect
 	time ./intersect H.dat L.dat
+	@echo ""
+	time ./intersect_thr H.dat L.dat
 	@echo ""
 	time ./cv_intersect H.dat L.dat
 	@echo ""
@@ -26,5 +32,5 @@ test: intersect cv_intersect
 .PHONY: clean
 
 clean:
-	rm -f cv_intersect intersect
+	rm -f cv_intersect intersect intersect_thr
 
