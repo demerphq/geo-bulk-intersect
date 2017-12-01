@@ -199,6 +199,8 @@ int main(int argc, char **argv)
     // dump results in some format
 
     start = clock();
+    qsort(hotels, hotel_count, sizeof(latlong), compare_lat);
+    printf("Time spent sorting hotels %fs\n", (f32) (clock() - start) / (f32) CLOCKS_PER_SEC);
     qsort(landmarks_by_lat, landmark_count, sizeof(latlong), compare_lat);
     printf("Time spent sorting landmarks %fs\n", (f32) (clock() - start) / (f32) CLOCKS_PER_SEC);
 
