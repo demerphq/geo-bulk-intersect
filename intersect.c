@@ -312,8 +312,7 @@ static void *thread_start(void *arg)
 
 inline static uint64_t partition_intersect_hotels(geopoint_t * const hotels, const uint64_t n_hotels,
                                                   geopoint_t * const landmarks, const uint64_t n_landmarks,
-                                                  const uint64_t swapped, const char *type_hotels,
-                                                  double t0)
+                                                  const uint64_t swapped, const char *type_hotels, double t0)
 {
     struct thread_info tinfo[NUM_THREADS];
     uint64_t incr = (n_hotels + NUM_THREADS - 1) / NUM_THREADS;
