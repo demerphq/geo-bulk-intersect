@@ -210,7 +210,9 @@ int main(int argc, char **argv)
     start = clock();
 
     // space for output, which is for every hotel a u64 (2x \t f64) (6x \t u32) \n
-    u64 output_record_size = sizeof(u64) + 2 * (sizeof(f64) + 1) + 6 * (sizeof(u32) + 1) + 1;
+    // 1 record will be printed as: 
+    char record_format[] = "%10llu\t%11.6f\t%11.6f\t%4u\t%4u\t%4u\t%4u\t%4u\t%4u\n";
+    u64 output_record_size = 10 + 1 + 2 * (11 + 1) + 6 * (4 + 1);
     u64 output_bytes = output_record_size * hotel_count;
     char *outbuf = malloc(output_bytes);
     char *outbuf_ptr = outbuf;
@@ -254,7 +256,7 @@ int main(int argc, char **argv)
             up++;
         }
 
-        sprintf(outbuf_ptr, "%llu\t%lf\t%lf\t\t%u\t%u\t%u\t%u\t%u\t%u\n", hotels[i].id, hotels[i].lat, hotels[i].lng,
+        sprintf(outbuf_ptr, record_format, hotels[i].id, hotels[i].lat, hotels[i].lng,
                 landmarks_in_distance[0], landmarks_in_distance[1], landmarks_in_distance[2], landmarks_in_distance[3],
                 landmarks_in_distance[4], landmarks_in_distance[5]
             );
